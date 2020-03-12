@@ -5,4 +5,5 @@
     <string name="checkingUser">Checking User</string>
     <string name="creatingUser">Creating User</string>
     <string name="loadingChatRooms">Loading Chat Rooms</string>
+    <string name="writeMessage">Write a Message</string>
 </resources>

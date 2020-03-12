@@ -3,6 +3,7 @@ package com.iseokchan.dorandoran
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -35,11 +36,29 @@ class ChatListActivity : AppCompatActivity() {
 
         viewManager = LinearLayoutManager(this)
         viewAdapter = ChatRoomAdapter(ArrayList<ChatRoom>().apply {
-            add(ChatRoom(
-                "1"
+            add(
+                ChatRoom(
+                    "1"
 
-            ))
-        })
+                )
+            )
+
+        }).apply {
+
+            itemClick = object : ChatRoomAdapter.ItemClick {
+
+                override fun onClick(view: View, position: Int, chatroom: ChatRoom) {
+
+                    val intent = Intent(this@ChatListActivity, ChatActivity::class.java)
+                    intent.putExtra("uid", currentUser.uid)
+                    intent.putExtra("chatroom_id", chatroom.id)
+                    startActivity(intent)
+
+                }
+
+            }
+
+        }
 
         recyclerView = rv_chatRooms.apply {
             // use this setting to improve performance if you know that changes
@@ -53,6 +72,7 @@ class ChatListActivity : AppCompatActivity() {
             adapter = viewAdapter
 
         }
+
     }
 
     public override fun onStart() {
@@ -67,7 +87,7 @@ class ChatListActivity : AppCompatActivity() {
 
     private fun updateUI(user: FirebaseUser?) {
 
-        if( user !== null) {
+        if (user !== null) {
 
             Snackbar.make(chatListLayout, R.string.loginSuccess, Snackbar.LENGTH_SHORT).show()
             getChatRooms()
@@ -93,7 +113,7 @@ class ChatListActivity : AppCompatActivity() {
 
         Snackbar.make(chatListLayout, R.string.loadingChatRooms, Snackbar.LENGTH_SHORT).show()
 
-        uidRef.whereArrayContains("users", userRef).addSnapshotListener{ value, e ->
+        uidRef.whereArrayContains("users", userRef).addSnapshotListener { value, e ->
 
             if (e != null) {
                 Log.w("MyTag", "Listen failed.", e)
@@ -108,6 +128,7 @@ class ChatListActivity : AppCompatActivity() {
                 Log.d("MyTag", document.id + " => " + document.data)
 
                 val obj: ChatRoom = document.toObject(ChatRoom::class.java)
+                obj.id = document.id
                 chatRooms.add(obj)
             }
 
@@ -115,10 +136,7 @@ class ChatListActivity : AppCompatActivity() {
         }
 
 
-
-
     }
-
 
 
 }

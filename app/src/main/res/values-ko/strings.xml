@@ -7,4 +7,5 @@
     <string name="checkingUser">계정을 확인하고 있습니다.</string>
     <string name="creatingUser">계정을 생성하고 있습니다.</string>
     <string name="loadingChatRooms">채팅방을 불러오는 중입니다.</string>
+    <string name="writeMessage">메시지를 입력하세요.</string>
 </resources>
