@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Dorandoran</string>
+    <string name="loginFailed">Login Failed</string>
+    <string name="loginSuccess">Login Success</string>
+    <string name="checkingUser">Checking User</string>
+    <string name="creatingUser">Creating User</string>
+    <string name="loadingChatRooms">Loading Chat Rooms</string>
 </resources>

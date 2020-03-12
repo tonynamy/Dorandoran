@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">도란도란</string>
+
+    <string name="loginSuccess">로그인에 성공하였습니다.</string>
+    <string name="loginFailed">로그인에 실패하였습니다.</string>
+    <string name="checkingUser">계정을 확인하고 있습니다.</string>
+    <string name="creatingUser">계정을 생성하고 있습니다.</string>
+    <string name="loadingChatRooms">채팅방을 불러오는 중입니다.</string>
+</resources>
