@@ -13,11 +13,11 @@ import com.iseokchan.dorandoran.models.ChatRoom
 class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>):
     RecyclerView.Adapter<ChatRoomAdapter.MyViewHolder>() {
 
-    interface ItemClick
+    interface onItemClicked
     {
-        fun onClick(view: View, position: Int, chatroom: ChatRoom)
+        fun onChatRoomClicked(view: View, position: Int, chatroom: ChatRoom)
     }
-    var itemClick: ItemClick? = null
+    var itemClick: onItemClicked? = null
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
@@ -28,7 +28,6 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>):
         var tvChatroomname: TextView = view.findViewById(R.id.tv_chatroom_name)
         var tvRecentMessage: TextView = view.findViewById(R.id.tv_recent_messsage)
     }
-
 
     // Create new views (invoked by the layout manager)
     override fun onCreateViewHolder(parent: ViewGroup,
@@ -45,7 +44,7 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>):
         // - replace the contents of the view with that element
         itemClick?.let {
             holder.view.setOnClickListener { v ->
-                it.onClick(v, position, chatRooms[position])
+                it.onChatRoomClicked(v, position, chatRooms[position])
             }
         }
 

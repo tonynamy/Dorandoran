@@ -108,7 +108,9 @@ class LoginActivity : AppCompatActivity() {
 
         val uid = firebaseUser.uid
         val userName = firebaseUser.displayName
-        val user = User(uid, userName!!)
+        val email = firebaseUser.email
+
+        val user = User(uid, userName!!, email!!)
 
         val uidRef = rootRef.collection("users").document(uid)
 

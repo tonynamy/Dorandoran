@@ -10,12 +10,15 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.*
 import com.iseokchan.dorandoran.adapters.ChatAdapter
 import com.iseokchan.dorandoran.models.Chat
 import com.iseokchan.dorandoran.models.ChatRoom
+import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_chat.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.tasks.await
+import java.lang.Runnable
 
 
 class ChatActivity : AppCompatActivity() {
@@ -46,7 +49,7 @@ class ChatActivity : AppCompatActivity() {
         rootRef = FirebaseFirestore.getInstance()
 
         viewManager = LinearLayoutManager(this)
-        viewAdapter = ChatAdapter(ArrayList(), intent.getStringExtra("uid"))
+        viewAdapter = ChatAdapter(ArrayList(), ArrayList(), intent.getStringExtra("uid"))
 
         recyclerView = rv_chats.apply {
             // use this setting to improve performance if you know that changes
@@ -114,24 +117,51 @@ class ChatActivity : AppCompatActivity() {
 
         chatRoomRef.addSnapshotListener { value, e ->
 
-            if (e != null) {
-                Log.w("MyTag", "Listen failed.", e)
-                return@addSnapshotListener
-            }
-            val document = value!!
-
-            val chatRoom = document.toObject(ChatRoom::class.java)
-
-            updateChatView(chatRoom!!)
+            onChatroomRetrieved(value, e)
 
         }
     }
 
-    private fun updateChatView(chatRoom: ChatRoom) {
+    suspend fun getUser(userRef: DocumentReference) = userRef
+        .get()
+        .await()
+        .toObject(User::class.java)
+
+    private fun onChatroomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) = runBlocking<Unit> {
+
+        GlobalScope.launch {
+
+            if (e != null) {
+                Log.w("MyTag", "Listen failed.", e)
+                return@launch
+            }
+            val document = value!!
+
+            val chatRoom = document.toObject(ChatRoom::class.java)!!
+
+            val users = ArrayList<User>()
+
+            val getUserList = async {
+                chatRoom.users?.let {
+                    for(userRef in it) {
+                        getUser(userRef)?.let { it1 -> users.add(it1) }
+                    }
+                }
+            }
+
+            getUserList.await()
+
+            runOnUiThread {
+                updateChatView(chatRoom, users)
+            }
+        }
+    }
+
+    private fun updateChatView(chatRoom: ChatRoom, users: ArrayList<User>) {
 
         chatRoom.messages?.let {
 
-            this.viewAdapter.updateList(it)
+            this.viewAdapter.updateList(it, users)
             this.recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount-1)
 
         }

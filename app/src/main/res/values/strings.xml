@@ -6,4 +6,10 @@
     <string name="creatingUser">Creating User</string>
     <string name="loadingChatRooms">Loading Chat Rooms</string>
     <string name="writeMessage">Write a Message</string>
+    <string name="cannotFindUser">Cannot Find User</string>
+    <string name="chatRoomCreated">Chat Room Created</string>
+    <string name="cannotCreateChatRoom">Cannot Create Chat Room</string>
+    <string name="newChatRoom">New Chat</string>
+    <string name="signOut">signOut</string>
+    <string name="unknownUser">알 수 없는 사용자</string>
 </resources>

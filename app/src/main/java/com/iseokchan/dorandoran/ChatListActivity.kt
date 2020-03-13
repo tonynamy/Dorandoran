@@ -1,18 +1,27 @@
 package com.iseokchan.dorandoran
 
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
+import androidx.appcompat.app.ActionBar
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iseokchan.dorandoran.adapters.ChatRoomAdapter
 import com.iseokchan.dorandoran.models.ChatRoom
+import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_chatlist.*
 
 
@@ -45,9 +54,9 @@ class ChatListActivity : AppCompatActivity() {
 
         }).apply {
 
-            itemClick = object : ChatRoomAdapter.ItemClick {
+            itemClick = object : ChatRoomAdapter.onItemClicked {
 
-                override fun onClick(view: View, position: Int, chatroom: ChatRoom) {
+                override fun onChatRoomClicked(view: View, position: Int, chatroom: ChatRoom) {
 
                     val intent = Intent(this@ChatListActivity, ChatActivity::class.java)
                     intent.putExtra("uid", currentUser.uid)
@@ -55,7 +64,6 @@ class ChatListActivity : AppCompatActivity() {
                     startActivity(intent)
 
                 }
-
             }
 
         }
@@ -72,6 +80,105 @@ class ChatListActivity : AppCompatActivity() {
             adapter = viewAdapter
 
         }
+
+        val ab: ActionBar? = supportActionBar
+
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.chatlist_actionbar_menus, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        return when (item!!.itemId) {
+            R.id.action_new_chatroom -> {
+                showNewChatRoomDialog()
+                true
+            }
+            R.id.action_sign_out -> {
+                auth.signOut()
+                val intent = Intent(this, LoginActivity::class.java)
+                startActivity(intent)
+                finish()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun showNewChatRoomDialog() {
+        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        builder.setTitle("새 채팅")
+
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        builder.setView(input)
+
+        builder.setPositiveButton("OK",
+            DialogInterface.OnClickListener { dialog, which ->
+                val searchEmail = input.text.toString()
+
+                // firstly select user
+
+                val usersRef = rootRef.collection("users")
+                usersRef.whereEqualTo("email", searchEmail).get().addOnCompleteListener { it ->
+
+                    if(it.isSuccessful) {
+
+                        val documents = it.result?.documents
+
+                        documents?.let {
+
+                            if(it.size == 0) {
+                                Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
+                                return@let
+                            }
+
+                            createNewChatRoom(it[0].toObject(User::class.java), it[0].reference)
+
+
+
+                        } ?: Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
+
+
+                    } else {
+
+                        Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
+
+                    }
+
+                }
+
+
+            })
+        builder.setNegativeButton("Cancel",
+            DialogInterface.OnClickListener { dialog, which -> dialog.cancel() })
+
+        builder.show()
+    }
+
+    private fun createNewChatRoom(friend:User?, friendRef: DocumentReference) {
+
+        val myRef = rootRef.collection("users").document(currentUser.uid)
+        val chatRoomRef = rootRef.collection("chatrooms")
+
+        chatRoomRef
+            .add(ChatRoom(
+
+                displayName = friend?.displayName ?: "알 수 없는 친구",
+                users = ArrayList<DocumentReference>(2).apply {
+                    add(myRef)
+                    add(friendRef)
+                }
+            ))
+            .addOnSuccessListener {
+                Snackbar.make(chatListLayout, R.string.chatRoomCreated, Snackbar.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Log.e("MY TAG", e.message)
+                Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
+            }
 
     }
 

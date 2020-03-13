@@ -7,8 +7,9 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.iseokchan.dorandoran.R
 import com.iseokchan.dorandoran.models.Chat
+import com.iseokchan.dorandoran.models.User
 
-class ChatAdapter(var chats: List<Chat>, val uid:String):
+class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val uid:String):
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     // Provide a reference to the views for each data item
@@ -63,7 +64,9 @@ class ChatAdapter(var chats: List<Chat>, val uid:String):
 
                 val notMyHolder = holder as NotMyChatViewHolder
                 notMyHolder.tvMessageBody.text = currentChat.content
-                notMyHolder.tvName.text = currentChat.content
+
+                val userName = users.find { it.uid == currentChat.uid }?.displayName ?: notMyHolder.itemView.context.getString(R.string.unknownUser)
+                notMyHolder.tvName.text = userName
 
 
             }
@@ -76,8 +79,9 @@ class ChatAdapter(var chats: List<Chat>, val uid:String):
     // Return the size of your dataset (invoked by the layout manager)
     override fun getItemCount() = chats.size
 
-    fun updateList(chats: ArrayList<Chat>) {
+    fun updateList(chats: ArrayList<Chat>, users: ArrayList<User>) {
         this.chats = chats
+        this.users = users
         notifyDataSetChanged()
     }
 }
