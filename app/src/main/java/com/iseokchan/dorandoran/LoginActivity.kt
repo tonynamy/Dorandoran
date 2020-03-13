@@ -17,12 +17,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_login.*
 
-class MainActivity : AppCompatActivity() {
+class LoginActivity : AppCompatActivity() {
 
     private val RC_SIGN_IN = 9001;
     private val TAG = "Google Login"
 
-    lateinit var googleSignInClient:GoogleSignInClient
+    private lateinit var googleSignInClient:GoogleSignInClient
 
     private lateinit var rootRef: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
