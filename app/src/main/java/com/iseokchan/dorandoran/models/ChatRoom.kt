@@ -9,7 +9,7 @@ import kotlin.collections.HashMap
 
 @IgnoreExtraProperties
 data class ChatRoom(
-    @Exclude var id: String? = null,
+    @get:Exclude var id: String? = null,
     val displayName: String = "",
 
     val messages: ArrayList<Chat>? = null,

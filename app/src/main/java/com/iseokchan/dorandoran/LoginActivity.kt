@@ -1,6 +1,7 @@
 package com.iseokchan.dorandoran
 
 import android.content.Intent
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -32,8 +33,8 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id))
-            .requestEmail()
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
@@ -109,8 +110,9 @@ class LoginActivity : AppCompatActivity() {
         val uid = firebaseUser.uid
         val userName = firebaseUser.displayName
         val email = firebaseUser.email
+        val profileImage = getProfileImageByProvider(firebaseUser.photoUrl, firebaseUser.providerId)
 
-        val user = User(uid, userName!!, email!!)
+        val user = User(userName, email, profileImage)
 
         val uidRef = rootRef.collection("users").document(uid)
 
@@ -134,6 +136,27 @@ class LoginActivity : AppCompatActivity() {
         }
 
 
+    }
+
+    private fun getProfileImageByProvider(photoURL: Uri?, providerId: String) : String? {
+
+        var profileImage:String? = null
+
+        if(photoURL == null) return profileImage
+
+        profileImage = when {
+            providerId.contains("google") -> { // GOOGLE
+                photoURL.toString()
+            }
+            providerId.contains("facebook") -> { // FACEBOOK
+                "${photoURL.toString()}?type=large"
+            }
+            else -> {
+                photoURL.toString()
+            }
+        }
+
+        return profileImage
     }
 
     private fun updateUI(user: FirebaseUser?) {

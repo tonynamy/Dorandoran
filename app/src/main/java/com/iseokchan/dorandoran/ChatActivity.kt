@@ -4,6 +4,7 @@ import android.R.attr
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -30,6 +31,8 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var viewAdapter: ChatAdapter
     private lateinit var viewManager: RecyclerView.LayoutManager
+
+    private lateinit var actionBar: ActionBar
 
     private var chatroom_id = ""
 
@@ -85,6 +88,8 @@ class ChatActivity : AppCompatActivity() {
             et_message.setText("")
 
         }
+
+        this.actionBar = supportActionBar!!
     }
 
     public override fun onStart() {
@@ -125,7 +130,9 @@ class ChatActivity : AppCompatActivity() {
     suspend fun getUser(userRef: DocumentReference) = userRef
         .get()
         .await()
-        .toObject(User::class.java)
+        .toObject(User::class.java)?.apply {
+            this.uid = userRef.id
+        }
 
     private fun onChatroomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) = runBlocking<Unit> {
 
@@ -158,6 +165,8 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun updateChatView(chatRoom: ChatRoom, users: ArrayList<User>) {
+
+        actionBar.title = chatRoom.displayName
 
         chatRoom.messages?.let {
 

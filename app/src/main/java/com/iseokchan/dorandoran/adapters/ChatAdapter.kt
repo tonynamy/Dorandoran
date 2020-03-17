@@ -3,8 +3,12 @@ package com.iseokchan.dorandoran.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.RequestOptions
 import com.iseokchan.dorandoran.R
 import com.iseokchan.dorandoran.models.Chat
 import com.iseokchan.dorandoran.models.User
@@ -22,7 +26,7 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val uid:Str
 
     class NotMyChatViewHolder(private val view: View) : RecyclerView.ViewHolder(view) {
         var tvMessageBody: TextView = view.findViewById(R.id.message_body)
-        var vAvatar: View = view.findViewById(R.id.avatar)
+        var vAvatar: ImageView = view.findViewById(R.id.avatar)
         var tvName: TextView = view.findViewById(R.id.name)
     }
 
@@ -68,6 +72,18 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val uid:Str
                 val userName = users.find { it.uid == currentChat.uid }?.displayName ?: notMyHolder.itemView.context.getString(R.string.unknownUser)
                 notMyHolder.tvName.text = userName
 
+                val profileImage = users.find { it.uid == currentChat.uid }?.profileImage
+
+                notMyHolder.vAvatar.drawable
+
+                profileImage?.let{
+                    Glide
+                        .with(notMyHolder.itemView.context)
+                        .load(it)
+                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                        .apply(RequestOptions.circleCropTransform())
+                        .into(notMyHolder.vAvatar);
+                }
 
             }
 

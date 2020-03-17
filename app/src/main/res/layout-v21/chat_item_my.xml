@@ -6,8 +6,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingVertical="10dp"
-    android:paddingRight="15dp"
-    android:paddingLeft="60dp"
     android:clipToPadding="false"
     android:paddingEnd="15dp"
     android:paddingStart="60dp">
@@ -20,7 +18,6 @@
         android:textColor="#fff"
         android:padding="10dp"
         android:textSize="18sp"
-        android:layout_alignParentRight="true"
         android:text="@string/unknownMessage"
         android:layout_alignParentEnd="true" />
 

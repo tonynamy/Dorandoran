@@ -1,7 +1,12 @@
 package com.iseokchan.dorandoran
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.util.Log
@@ -9,16 +14,23 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.tasks.OnCompleteListener
+import com.google.android.gms.tasks.Task
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.iid.FirebaseInstanceId
 import com.iseokchan.dorandoran.adapters.ChatRoomAdapter
 import com.iseokchan.dorandoran.models.ChatRoom
 import com.iseokchan.dorandoran.models.User
@@ -35,6 +47,8 @@ class ChatListActivity : AppCompatActivity() {
     private lateinit var viewAdapter: ChatRoomAdapter
     private lateinit var viewManager: RecyclerView.LayoutManager
 
+    private lateinit var actionBar: ActionBar
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +56,10 @@ class ChatListActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
         rootRef = FirebaseFirestore.getInstance()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createNotificationChannel()
+        }
 
         viewManager = LinearLayoutManager(this)
         viewAdapter = ChatRoomAdapter(ArrayList<ChatRoom>().apply {
@@ -81,8 +99,19 @@ class ChatListActivity : AppCompatActivity() {
 
         }
 
-        val ab: ActionBar? = supportActionBar
+        this.actionBar = supportActionBar!!
 
+    }
+    
+    // API 26 이상을 위한 Notification Channel 생성
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun createNotificationChannel() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        NotificationChannel("__message__", "메시지", NotificationManager.IMPORTANCE_HIGH).apply {
+            description = "새로운 메시지 수신 시"
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            notificationManager.createNotificationChannel(this)
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -98,9 +127,23 @@ class ChatListActivity : AppCompatActivity() {
             }
             R.id.action_sign_out -> {
                 auth.signOut()
-                val intent = Intent(this, LoginActivity::class.java)
-                startActivity(intent)
-                finish()
+
+                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(getString(R.string.default_web_client_id))
+                    .requestEmail()
+                    .build()
+
+                val googleSignInClient = GoogleSignIn.getClient(this, gso)
+                googleSignInClient.signOut().addOnCompleteListener(this
+                ) {
+
+                    val intent = Intent(this, LoginActivity::class.java)
+                    startActivity(intent)
+                    finish()
+
+                }
+
+
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -135,7 +178,11 @@ class ChatListActivity : AppCompatActivity() {
                                 return@let
                             }
 
-                            createNewChatRoom(it[0].toObject(User::class.java), it[0].reference)
+                            val user = it[0].toObject(User::class.java)?.apply {
+                                this.uid = it[0].reference.id
+                            }
+
+                            createNewChatRoom(user, it[0].reference)
 
 
 
@@ -187,6 +234,21 @@ class ChatListActivity : AppCompatActivity() {
         // Check if user is signed in (non-null) and update UI accordingly.
         auth.currentUser?.let {
             this.currentUser = it
+        }
+
+        FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener { task ->
+            Log.i("token", task.token)
+
+            this.currentUser.let{
+
+                val userRef = rootRef.collection("users").document(it.uid)
+
+                userRef.set(hashMapOf(
+                    "fcmToken" to task.token
+                ), SetOptions.merge())
+
+            }
+
         }
 
         updateUI(currentUser)
