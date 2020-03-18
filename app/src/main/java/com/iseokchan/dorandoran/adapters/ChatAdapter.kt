@@ -12,6 +12,9 @@ import com.bumptech.glide.request.RequestOptions
 import com.iseokchan.dorandoran.R
 import com.iseokchan.dorandoran.models.Chat
 import com.iseokchan.dorandoran.models.User
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 
 class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val my_uid: String) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -22,12 +25,14 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val my_uid:
     // Each data item is just a string in this case that is shown in a TextView.
     class MyChatViewHolder(private val view: View) : RecyclerView.ViewHolder(view) {
         var tvMessageBody: TextView = view.findViewById(R.id.message_body)
+        var tvTime:TextView = view.findViewById(R.id.message_time)
     }
 
     class NotMyChatViewHolder(private val view: View) : RecyclerView.ViewHolder(view) {
         var tvMessageBody: TextView = view.findViewById(R.id.message_body)
         var vAvatar: ImageView = view.findViewById(R.id.avatar)
         var tvName: TextView = view.findViewById(R.id.name)
+        var tvTime:TextView = view.findViewById(R.id.message_time)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -66,12 +71,16 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val my_uid:
 
         val currentChat = chats[position]
 
+        val timeFormat = SimpleDateFormat("MM/dd a hh:mm", Locale.KOREA)
+
         when (holder.itemViewType) {
 
             0 -> { // my
 
                 val myHolder = holder as MyChatViewHolder
                 myHolder.tvMessageBody.text = currentChat.content
+
+                myHolder.tvTime.text = timeFormat.format(currentChat.createdAt)
 
 
             }
@@ -97,6 +106,8 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val my_uid:
                         .apply(RequestOptions.circleCropTransform())
                         .into(notMyHolder.vAvatar)
                 }
+
+                notMyHolder.tvTime.text = timeFormat.format(currentChat.createdAt)
 
             }
 

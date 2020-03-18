@@ -45,4 +45,15 @@
         android:text="@string/unknownMessage"
         android:textSize="18sp"
         android:layout_alignStart="@+id/name" />
+
+    <TextView
+        android:id="@+id/message_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/message_body"
+        android:layout_alignLeft="@+id/name"
+        android:text="@string/unknownTime"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="12sp"
+        android:layout_alignStart="@+id/name" />
 </RelativeLayout>
