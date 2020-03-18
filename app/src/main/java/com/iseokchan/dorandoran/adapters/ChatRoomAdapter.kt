@@ -6,17 +6,22 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.RequestOptions
 import com.iseokchan.dorandoran.R
 import com.iseokchan.dorandoran.models.ChatRoom
+import com.iseokchan.dorandoran.models.User
 
-class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>):
+class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
     RecyclerView.Adapter<ChatRoomAdapter.MyViewHolder>() {
 
-    interface onItemClicked
-    {
+    interface onItemClicked {
         fun onChatRoomClicked(view: View, position: Int, chatroom: ChatRoom)
     }
+
     var itemClick: onItemClicked? = null
 
     // Provide a reference to the views for each data item
@@ -30,8 +35,10 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>):
     }
 
     // Create new views (invoked by the layout manager)
-    override fun onCreateViewHolder(parent: ViewGroup,
-                                    viewType: Int): MyViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): MyViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.chatroom_item, parent, false) as View
 
@@ -48,19 +55,42 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>):
             }
         }
 
-        holder.tvChatroomname.text = chatRooms[position].displayName
+        //1:1 채팅 전용 - 그룹 채팅 구현 시 변경 필요
+        holder.tvChatroomname.text = chatRooms[position].userModels?.find { !it.uid.equals(my_uid) }?.displayName
+            ?: holder.view.context.getString(R.string.unknownUser)
+
         holder.tvRecentMessage.text = chatRooms[position].messages?.last()?.content ?: ""
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            holder.ivChatRoomThumbnail.setImageDrawable(holder.view.resources.getDrawable(R.drawable.ic_message_purple_24dp, holder.view.resources.newTheme()))
+        val profileImage = chatRooms[position].userModels?.find { !it.uid.equals(my_uid) }?.profileImage
+
+        if(profileImage.isNullOrBlank()) {
+
+            holder.ivChatRoomThumbnail.setImageDrawable(
+                ContextCompat.getDrawable(
+                    holder.view.context,
+                    R.drawable.ic_message_purple_24dp
+                )
+            )
+
+        } else{
+
+            Glide
+                .with(holder.view.context)
+                .load(profileImage)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .apply(RequestOptions.circleCropTransform())
+                .into(holder.ivChatRoomThumbnail)
+
         }
+        //--------------------
     }
 
     // Return the size of your dataset (invoked by the layout manager)
     override fun getItemCount() = chatRooms.size
 
-    fun updateList(chatRooms: ArrayList<ChatRoom>) {
+    fun updateList(chatRooms: ArrayList<ChatRoom>, my_uid: String? = null) {
         this.chatRooms = chatRooms
+        this.my_uid = my_uid
         notifyDataSetChanged()
     }
 }

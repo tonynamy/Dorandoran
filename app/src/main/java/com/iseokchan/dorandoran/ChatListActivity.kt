@@ -27,14 +27,17 @@ import com.google.android.gms.tasks.Task
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.*
 import com.google.firebase.iid.FirebaseInstanceId
 import com.iseokchan.dorandoran.adapters.ChatRoomAdapter
 import com.iseokchan.dorandoran.models.ChatRoom
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_chatlist.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
 
 
 class ChatListActivity : AppCompatActivity() {
@@ -62,15 +65,7 @@ class ChatListActivity : AppCompatActivity() {
         }
 
         viewManager = LinearLayoutManager(this)
-        viewAdapter = ChatRoomAdapter(ArrayList<ChatRoom>().apply {
-            add(
-                ChatRoom(
-                    "1"
-
-                )
-            )
-
-        }).apply {
+        viewAdapter = ChatRoomAdapter(ArrayList<ChatRoom>(), null).apply {
 
             itemClick = object : ChatRoomAdapter.onItemClicked {
 
@@ -102,11 +97,12 @@ class ChatListActivity : AppCompatActivity() {
         this.actionBar = supportActionBar!!
 
     }
-    
+
     // API 26 이상을 위한 Notification Channel 생성
     @RequiresApi(Build.VERSION_CODES.O)
     fun createNotificationChannel() {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         NotificationChannel("__message__", "메시지", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "새로운 메시지 수신 시"
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -134,7 +130,8 @@ class ChatListActivity : AppCompatActivity() {
                     .build()
 
                 val googleSignInClient = GoogleSignIn.getClient(this, gso)
-                googleSignInClient.signOut().addOnCompleteListener(this
+                googleSignInClient.signOut().addOnCompleteListener(
+                    this
                 ) {
 
                     val intent = Intent(this, LoginActivity::class.java)
@@ -158,54 +155,63 @@ class ChatListActivity : AppCompatActivity() {
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
         builder.setView(input)
 
-        builder.setPositiveButton("OK",
-            DialogInterface.OnClickListener { dialog, which ->
-                val searchEmail = input.text.toString()
+        builder.setPositiveButton(
+            "OK"
+        ) { _, _ ->
+            val searchEmail = input.text.toString()
 
-                // firstly select user
+            // firstly select user
 
-                val usersRef = rootRef.collection("users")
-                usersRef.whereEqualTo("email", searchEmail).get().addOnCompleteListener { it ->
+            val usersRef = rootRef.collection("users")
+            usersRef.whereEqualTo("email", searchEmail).get().addOnCompleteListener { it ->
 
-                    if(it.isSuccessful) {
+                if (it.isSuccessful) {
 
-                        val documents = it.result?.documents
+                    val documents = it.result?.documents
 
-                        documents?.let {
+                    documents?.let {
 
-                            if(it.size == 0) {
-                                Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
-                                return@let
-                            }
+                        if (it.size == 0) {
+                            Snackbar.make(
+                                chatListLayout,
+                                R.string.cannotFindUser,
+                                Snackbar.LENGTH_SHORT
+                            ).show()
+                            return@let
+                        }
 
-                            val user = it[0].toObject(User::class.java)?.apply {
-                                this.uid = it[0].reference.id
-                            }
+                        val user = it[0].toObject(User::class.java)?.apply {
+                            this.uid = it[0].reference.id
+                        }
 
-                            createNewChatRoom(user, it[0].reference)
-
-
-
-                        } ?: Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
+                        createNewChatRoom(user, it[0].reference)
 
 
-                    } else {
+                    } ?: Snackbar.make(
+                        chatListLayout,
+                        R.string.cannotFindUser,
+                        Snackbar.LENGTH_SHORT
+                    ).show()
 
-                        Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
 
-                    }
+                } else {
+
+                    Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT)
+                        .show()
 
                 }
 
+            }
 
-            })
+
+        }
         builder.setNegativeButton("Cancel",
-            DialogInterface.OnClickListener { dialog, which -> dialog.cancel() })
+            DialogInterface.OnClickListener { dialog, _ -> dialog.cancel() })
 
         builder.show()
     }
 
-    private fun createNewChatRoom(friend:User?, friendRef: DocumentReference) {
+    private fun createNewChatRoom(friend: User?, friendRef: DocumentReference) {
 
         val myRef = rootRef.collection("users").document(currentUser.uid)
         val chatRoomRef = rootRef.collection("chatrooms")
@@ -220,7 +226,8 @@ class ChatListActivity : AppCompatActivity() {
                 }
             ))
             .addOnSuccessListener {
-                Snackbar.make(chatListLayout, R.string.chatRoomCreated, Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(chatListLayout, R.string.chatRoomCreated, Snackbar.LENGTH_SHORT)
+                    .show()
             }
             .addOnFailureListener { e ->
                 Log.e("MY TAG", e.message)
@@ -239,13 +246,15 @@ class ChatListActivity : AppCompatActivity() {
         FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener { task ->
             Log.i("token", task.token)
 
-            this.currentUser.let{
+            this.currentUser.let {
 
                 val userRef = rootRef.collection("users").document(it.uid)
 
-                userRef.set(hashMapOf(
-                    "fcmToken" to task.token
-                ), SetOptions.merge())
+                userRef.set(
+                    hashMapOf(
+                        "fcmToken" to task.token
+                    ), SetOptions.merge()
+                )
 
             }
 
@@ -271,9 +280,16 @@ class ChatListActivity : AppCompatActivity() {
 
     private fun updateChatRoomView(chatRooms: ArrayList<ChatRoom>) {
 
-        this.viewAdapter.updateList(chatRooms)
+        this.viewAdapter.updateList(chatRooms, currentUser.uid)
 
     }
+
+    suspend fun getUser(userRef: DocumentReference) = userRef
+        .get()
+        .await()
+        .toObject(User::class.java)?.apply {
+            this.uid = userRef.id
+        }
 
     private fun getChatRooms() {
 
@@ -283,10 +299,19 @@ class ChatListActivity : AppCompatActivity() {
         Snackbar.make(chatListLayout, R.string.loadingChatRooms, Snackbar.LENGTH_SHORT).show()
 
         uidRef.whereArrayContains("users", userRef).addSnapshotListener { value, e ->
+            onChatroomRetrieved(value, e)
+        }
+
+
+    }
+
+    private fun onChatroomRetrieved(value: QuerySnapshot?, e: FirebaseFirestoreException?) = runBlocking<Unit> {
+
+        GlobalScope.launch {
 
             if (e != null) {
                 Log.w("MyTag", "Listen failed.", e)
-                return@addSnapshotListener
+                return@launch
             }
             val documents = value!!
 
@@ -296,15 +321,23 @@ class ChatListActivity : AppCompatActivity() {
 
                 Log.d("MyTag", document.id + " => " + document.data)
 
-                val obj: ChatRoom = document.toObject(ChatRoom::class.java)
-                obj.id = document.id
+                val obj: ChatRoom = document.toObject(ChatRoom::class.java).apply {
+
+                    this.id = document.id
+
+                    this.users?.forEach { userRef ->
+                        getUser(userRef)?.let { user -> this.userModels?.add(user) }
+                    }
+
+                }
+
                 chatRooms.add(obj)
             }
 
-            updateChatRoomView(chatRooms)
+            runOnUiThread {
+                updateChatRoomView(chatRooms)
+            }
         }
-
-
     }
 
 

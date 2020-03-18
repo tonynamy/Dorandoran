@@ -67,10 +67,10 @@ class ChatActivity : AppCompatActivity() {
 
         }
 
-        recyclerView.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+        recyclerView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, oldBottom ->
             if (attr.bottom < oldBottom) {
                 recyclerView.postDelayed(
-                    Runnable { recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount-1) },
+                    Runnable { recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount - 1) },
                     100
                 )
             }
@@ -80,11 +80,15 @@ class ChatActivity : AppCompatActivity() {
 
             val message = et_message.text.toString()
             val chatRoomRef = rootRef.collection("chatrooms").document(chatroom_id)
-            chatRoomRef.update("messages", FieldValue.arrayUnion(Chat(
-                message,
-                currentUser.uid,
-                Timestamp.now().toDate()
-            )))
+            chatRoomRef.update(
+                "messages", FieldValue.arrayUnion(
+                    Chat(
+                        message,
+                        currentUser.uid,
+                        Timestamp.now().toDate()
+                    )
+                )
+            )
             et_message.setText("")
 
         }
@@ -102,7 +106,7 @@ class ChatActivity : AppCompatActivity() {
         updateUI(currentUser)
     }
 
-    fun updateUI(currentUser: FirebaseUser?) {
+    private fun updateUI(currentUser: FirebaseUser?) {
 
         if (currentUser !== null) {
 
@@ -134,44 +138,45 @@ class ChatActivity : AppCompatActivity() {
             this.uid = userRef.id
         }
 
-    private fun onChatroomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) = runBlocking<Unit> {
+    private fun onChatroomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) =
+        runBlocking<Unit> {
 
-        GlobalScope.launch {
+            GlobalScope.launch {
 
-            if (e != null) {
-                Log.w("MyTag", "Listen failed.", e)
-                return@launch
-            }
-            val document = value!!
+                if (e != null) {
+                    Log.w("MyTag", "Listen failed.", e)
+                    return@launch
+                }
+                val document = value!!
 
-            val chatRoom = document.toObject(ChatRoom::class.java)!!
+                val chatRoom = document.toObject(ChatRoom::class.java)!!
 
-            val users = ArrayList<User>()
+                val users = ArrayList<User>()
 
-            val getUserList = async {
-                chatRoom.users?.let {
-                    for(userRef in it) {
-                        getUser(userRef)?.let { it1 -> users.add(it1) }
+                val getUserList = async {
+                    chatRoom.users?.let {
+                        for (userRef in it) {
+                            getUser(userRef)?.let { it1 -> users.add(it1) }
+                        }
                     }
                 }
-            }
 
-            getUserList.await()
+                getUserList.await()
 
-            runOnUiThread {
-                updateChatView(chatRoom, users)
+                runOnUiThread {
+                    updateChatView(chatRoom, users)
+                }
             }
         }
-    }
 
     private fun updateChatView(chatRoom: ChatRoom, users: ArrayList<User>) {
 
-        actionBar.title = chatRoom.displayName
+        actionBar.title = users.find { !it.uid.equals(currentUser.uid) }?.displayName ?: getString(R.string.unknownUser)
 
         chatRoom.messages?.let {
 
             this.viewAdapter.updateList(it, users)
-            this.recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount-1)
+            this.recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount - 1)
 
         }
 

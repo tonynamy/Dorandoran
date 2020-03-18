@@ -13,7 +13,7 @@ import com.iseokchan.dorandoran.R
 import com.iseokchan.dorandoran.models.Chat
 import com.iseokchan.dorandoran.models.User
 
-class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val uid:String):
+class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val my_uid: String) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     // Provide a reference to the views for each data item
@@ -35,18 +35,30 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val uid:Str
         // Note that unlike in ListView adapters, types don't have to be contiguous
         val currentChat = chats[position]
 
-        return if (currentChat.uid == uid) 0 else 1
+        return if (currentChat.uid == my_uid) 0 else 1
     }
 
     // Create new views (invoked by the layout manager)
-    override fun onCreateViewHolder(parent: ViewGroup,
-                                    viewType: Int): RecyclerView.ViewHolder {
-        return when(viewType) {
-            0 -> MyChatViewHolder( LayoutInflater.from(parent.context).inflate(R.layout.chat_item_my, parent, false) as View )
-            1 -> NotMyChatViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.chat_item_not_my, parent, false) as View)
-            else -> MyChatViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.chat_item_my, parent, false) as View)
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): RecyclerView.ViewHolder {
+        return when (viewType) {
+            0 -> MyChatViewHolder(
+                LayoutInflater.from(parent.context)
+                    .inflate(R.layout.chat_item_my, parent, false) as View
+            )
+            1 -> NotMyChatViewHolder(
+                LayoutInflater.from(parent.context)
+                    .inflate(R.layout.chat_item_not_my, parent, false) as View
+            )
+            else -> MyChatViewHolder(
+                LayoutInflater.from(parent.context)
+                    .inflate(R.layout.chat_item_my, parent, false) as View
+            )
         }
     }
+
     // Replace the contents of a view (invoked by the layout manager)
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         // - get element from your dataset at this position
@@ -54,7 +66,7 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val uid:Str
 
         val currentChat = chats[position]
 
-        when(holder.itemViewType) {
+        when (holder.itemViewType) {
 
             0 -> { // my
 
@@ -69,20 +81,21 @@ class ChatAdapter(var chats: List<Chat>, var users: ArrayList<User>, val uid:Str
                 val notMyHolder = holder as NotMyChatViewHolder
                 notMyHolder.tvMessageBody.text = currentChat.content
 
-                val userName = users.find { it.uid == currentChat.uid }?.displayName ?: notMyHolder.itemView.context.getString(R.string.unknownUser)
+                val userName = users.find { it.uid == currentChat.uid }?.displayName
+                    ?: notMyHolder.itemView.context.getString(R.string.unknownUser)
                 notMyHolder.tvName.text = userName
 
                 val profileImage = users.find { it.uid == currentChat.uid }?.profileImage
 
                 notMyHolder.vAvatar.drawable
 
-                profileImage?.let{
+                profileImage?.let {
                     Glide
                         .with(notMyHolder.itemView.context)
                         .load(it)
                         .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                         .apply(RequestOptions.circleCropTransform())
-                        .into(notMyHolder.vAvatar);
+                        .into(notMyHolder.vAvatar)
                 }
 
             }

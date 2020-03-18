@@ -5,6 +5,7 @@ import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 @IgnoreExtraProperties
@@ -15,6 +16,8 @@ data class ChatRoom(
     val messages: ArrayList<Chat>? = null,
 
     val users: List<DocumentReference>? = null,
+
+    @get:Exclude var userModels: ArrayList<User>? = ArrayList(),
 
     @ServerTimestamp
     val createdAt: Date? = null
