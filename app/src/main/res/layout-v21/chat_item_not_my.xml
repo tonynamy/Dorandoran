@@ -48,5 +48,5 @@
         android:text="@string/unknownTime"
         android:textColor="@android:color/darker_gray"
         android:textSize="12sp"
-        android:layout_alignStart="@+id/name" />
+        android:layout_alignEnd="@+id/message_body" />
 </RelativeLayout>
