@@ -127,11 +127,14 @@ class LoginActivity : AppCompatActivity() {
 
                     Snackbar.make(loginLayout, R.string.creatingUser, Snackbar.LENGTH_SHORT).show()
 
-                    uidRef.set(user)
+                    uidRef.set(user).addOnCompleteListener {
+                        updateUI(firebaseUser)
+                    }
 
+                } else {
+                    updateUI(firebaseUser)
                 }
 
-                updateUI(firebaseUser)
             }
         }
 
