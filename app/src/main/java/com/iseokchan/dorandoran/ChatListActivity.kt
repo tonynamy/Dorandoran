@@ -20,10 +20,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.android.gms.tasks.Task
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -34,7 +33,6 @@ import com.iseokchan.dorandoran.models.ChatRoom
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_chatlist.*
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
@@ -46,6 +44,7 @@ class ChatListActivity : AppCompatActivity() {
     private lateinit var rootRef: FirebaseFirestore
     private lateinit var currentUser: FirebaseUser
 
+    private lateinit var swipeLayout: SwipeRefreshLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var viewAdapter: ChatRoomAdapter
     private lateinit var viewManager: RecyclerView.LayoutManager
@@ -53,7 +52,9 @@ class ChatListActivity : AppCompatActivity() {
     private lateinit var actionBar: ActionBar
 
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chatlist)
 
@@ -95,6 +96,12 @@ class ChatListActivity : AppCompatActivity() {
         }
 
         this.actionBar = supportActionBar!!
+
+        swipeLayout = srl_chatrooms
+
+        swipeLayout.setOnRefreshListener {
+            getChatRoomsOnce()
+        }
 
     }
 
@@ -260,20 +267,17 @@ class ChatListActivity : AppCompatActivity() {
 
         }
 
-        updateUI(currentUser)
+        onUserChange(currentUser)
     }
 
-    private fun updateUI(user: FirebaseUser?) {
+    private fun onUserChange(user: FirebaseUser?) {
 
-        if (user !== null) {
-
-            Snackbar.make(chatListLayout, R.string.loginSuccess, Snackbar.LENGTH_SHORT).show()
-            getChatRooms()
-
-        } else {
+        if (user == null) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
             finish()
+        } else {
+            addChatroomSnapshotListener()
         }
 
     }
@@ -281,6 +285,7 @@ class ChatListActivity : AppCompatActivity() {
     private fun updateChatRoomView(chatRooms: ArrayList<ChatRoom>) {
 
         this.viewAdapter.updateList(chatRooms, currentUser.uid)
+        swipeLayout.isRefreshing = false
 
     }
 
@@ -291,29 +296,53 @@ class ChatListActivity : AppCompatActivity() {
             this.uid = userRef.id
         }
 
-    private fun getChatRooms() {
+    private fun getChatRoomsOnce() {
 
         val uidRef = rootRef.collection("chatrooms")
         val userRef = rootRef.collection("users").document(currentUser.uid)
 
         Snackbar.make(chatListLayout, R.string.loadingChatRooms, Snackbar.LENGTH_SHORT).show()
+        swipeLayout.isRefreshing = true
+
+        uidRef.whereArrayContains("users", userRef).get().addOnCompleteListener { task ->
+            if(task.isSuccessful && task.result != null) {
+                onChatroomRetrieved(task.result!!)
+            } else {
+                swipeLayout.isRefreshing = false
+            }
+        }
+
+
+    }
+
+    private fun addChatroomSnapshotListener() {
+
+        val uidRef = rootRef.collection("chatrooms")
+        val userRef = rootRef.collection("users").document(currentUser.uid)
 
         uidRef.whereArrayContains("users", userRef).addSnapshotListener { value, e ->
+            Snackbar.make(chatListLayout, R.string.loadingChatRooms, Snackbar.LENGTH_SHORT).show()
+            swipeLayout.isRefreshing = true
             onChatroomRetrieved(value, e)
         }
 
 
     }
 
-    private fun onChatroomRetrieved(value: QuerySnapshot?, e: FirebaseFirestoreException?) = runBlocking<Unit> {
+    private fun onChatroomRetrieved(value: QuerySnapshot?, e: FirebaseFirestoreException?) {
+
+        if (e != null) {
+            Log.w("MyTag", "Listen failed.", e)
+            return
+        }
+
+        value?.let { onChatroomRetrieved(it) }
+
+    }
+
+    private fun onChatroomRetrieved(documents: QuerySnapshot) = runBlocking<Unit> {
 
         GlobalScope.launch {
-
-            if (e != null) {
-                Log.w("MyTag", "Listen failed.", e)
-                return@launch
-            }
-            val documents = value!!
 
             val chatRooms = ArrayList<ChatRoom>()
 
