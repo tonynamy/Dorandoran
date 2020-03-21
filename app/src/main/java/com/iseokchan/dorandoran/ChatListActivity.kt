@@ -51,6 +51,8 @@ class ChatListActivity : AppCompatActivity() {
 
     private lateinit var actionBar: ActionBar
 
+    private var chatRoomListListener: ListenerRegistration? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -277,6 +279,7 @@ class ChatListActivity : AppCompatActivity() {
             finish()
         } else {
             addChatroomSnapshotListener()
+            getChatRoomsOnce()
         }
 
     }
@@ -319,10 +322,12 @@ class ChatListActivity : AppCompatActivity() {
         val uidRef = rootRef.collection("chatrooms")
         val userRef = rootRef.collection("users").document(currentUser.uid)
 
-        uidRef.whereArrayContains("users", userRef).addSnapshotListener { value, e ->
-            onChatroomRetrieved(value, e)
+        if (this.chatRoomListListener == null) {
+            this.chatRoomListListener =
+                uidRef.whereArrayContains("users", userRef).addSnapshotListener { value, e ->
+                    onChatroomRetrieved(value, e)
+                }
         }
-
 
     }
 
@@ -361,6 +366,11 @@ class ChatListActivity : AppCompatActivity() {
         runOnUiThread {
             updateChatRoomView(chatRooms)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        this.chatRoomListListener?.remove()
     }
 
 

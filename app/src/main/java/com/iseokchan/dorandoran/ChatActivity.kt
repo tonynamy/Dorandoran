@@ -69,10 +69,10 @@ class ChatActivity : AppCompatActivity() {
 
         }
 
-        recyclerView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, oldBottom ->
-            if (attr.bottom < oldBottom) {
+        recyclerView.addOnLayoutChangeListener { _, _, _, bottom, _, _, _, _, oldBottom ->
+            if (bottom < oldBottom) {
                 recyclerView.postDelayed(
-                    Runnable { recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount - 1) },
+                    Runnable { recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount.minus(1)) },
                     100
                 )
             }
@@ -199,7 +199,7 @@ class ChatActivity : AppCompatActivity() {
             ?: getString(R.string.unknownUser)
 
         this.viewAdapter.updateList(chatRoom)
-        this.recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount - 1)
+        this.recyclerView.scrollToPosition(this.viewAdapter.itemCount - 1)
 
     }
 }
