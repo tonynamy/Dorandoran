@@ -34,6 +34,8 @@ class ChatActivity : AppCompatActivity() {
 
     private lateinit var actionBar: ActionBar
 
+    private var chatRoomListener: ListenerRegistration? = null
+
     private var chatroom_id = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +54,7 @@ class ChatActivity : AppCompatActivity() {
         rootRef = FirebaseFirestore.getInstance()
 
         viewManager = LinearLayoutManager(this)
-        viewAdapter = ChatAdapter(ArrayList(), ArrayList(), intent.getStringExtra("uid"))
+        viewAdapter = ChatAdapter(ChatRoom(), intent.getStringExtra("uid"))
 
         recyclerView = rv_chats.apply {
             // use this setting to improve performance if you know that changes
@@ -120,11 +122,16 @@ class ChatActivity : AppCompatActivity() {
 
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        this.chatRoomListener?.remove()
+    }
+
     private fun getChattings() {
 
         val chatRoomRef = rootRef.collection("chatrooms").document(chatroom_id)
 
-        chatRoomRef.addSnapshotListener { value, e ->
+        this.chatRoomListener = chatRoomRef.addSnapshotListener { value, e ->
 
             onChatroomRetrieved(value, e)
 
@@ -139,17 +146,29 @@ class ChatActivity : AppCompatActivity() {
         }
 
     private fun onChatroomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) =
-        runBlocking<Unit> {
-
             GlobalScope.launch {
 
-                if (e != null) {
+                if (e != null || value == null) {
                     Log.w("MyTag", "Listen failed.", e)
                     return@launch
                 }
-                val document = value!!
 
-                val chatRoom = document.toObject(ChatRoom::class.java)!!
+                val chatRoom = value.toObject(ChatRoom::class.java)
+
+                if (chatRoom == null) {
+                    Log.w("MyTag", "Conversion failed.", e)
+                    return@launch
+                }
+
+                chatRoom.messages?.size?.let {
+
+                    if( chatRoom.seen?.get(currentUser.uid) != it.minus(1) ) {
+                        chatRoom.seen?.set(currentUser.uid, it.minus(1))
+                        updateChatRoom(value.reference, chatRoom)
+                    }
+
+
+                }
 
                 val users = ArrayList<User>()
 
@@ -163,22 +182,24 @@ class ChatActivity : AppCompatActivity() {
 
                 getUserList.await()
 
+                chatRoom.userModels = users
+
                 runOnUiThread {
-                    updateChatView(chatRoom, users)
+                    updateChatView(chatRoom)
                 }
-            }
         }
 
-    private fun updateChatView(chatRoom: ChatRoom, users: ArrayList<User>) {
+    private fun updateChatRoom(chatRoomRef: DocumentReference, chatRoom: ChatRoom) {
+        chatRoomRef.set(chatRoom, SetOptions.merge())
+    }
 
-        actionBar.title = users.find { !it.uid.equals(currentUser.uid) }?.displayName ?: getString(R.string.unknownUser)
+    private fun updateChatView(chatRoom: ChatRoom) {
 
-        chatRoom.messages?.let {
+        actionBar.title = chatRoom.userModels?.find { !it.uid.equals(currentUser.uid) }?.displayName
+            ?: getString(R.string.unknownUser)
 
-            this.viewAdapter.updateList(it, users)
-            this.recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount - 1)
-
-        }
+        this.viewAdapter.updateList(chatRoom)
+        this.recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount - 1)
 
     }
 }

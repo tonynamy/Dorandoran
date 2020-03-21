@@ -4,38 +4,63 @@
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
-    android:paddingBottom="@dimen/row_padding"
+    android:focusable="true"
     android:paddingLeft="@dimen/activity_margin"
-    android:paddingRight="@dimen/activity_margin"
     android:paddingTop="@dimen/row_padding"
-    android:focusable="true">
+    android:paddingRight="@dimen/activity_margin"
+    android:paddingBottom="@dimen/row_padding">
 
     <ImageView
         android:id="@+id/iv_chatroom_thumbnail"
         android:layout_width="@dimen/thumbnail"
         android:layout_height="@dimen/thumbnail"
         android:layout_centerVertical="true"
+        android:layout_marginEnd="@dimen/row_padding"
         android:layout_marginRight="@dimen/row_padding"
-        android:layout_marginEnd="@dimen/row_padding" />
+        android:contentDescription="@string/avatar" />
 
     <TextView
         android:id="@+id/tv_chatroom_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/iv_chatroom_thumbnail"
         android:layout_toRightOf="@id/iv_chatroom_thumbnail"
         android:fontFamily="sans-serif-medium"
+        android:text="@string/unknownUser"
         android:textColor="@color/contact_name"
-        android:textSize="@dimen/contact_name"
-        android:layout_toEndOf="@id/iv_chatroom_thumbnail" />
+        android:textSize="@dimen/contact_name" />
 
     <TextView
         android:id="@+id/tv_recent_messsage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/tv_chatroom_name"
+        android:layout_toEndOf="@id/iv_chatroom_thumbnail"
         android:layout_toRightOf="@id/iv_chatroom_thumbnail"
+        android:ellipsize="end"
+        android:maxWidth="@dimen/max_width_recent_message"
+        android:singleLine="true"
+        android:text="@string/unknownMessage"
         android:textColor="@color/contact_number"
-        android:textSize="@dimen/contact_number"
-        android:layout_toEndOf="@id/iv_chatroom_thumbnail" />
+        android:textSize="@dimen/contact_number" />
+
+    <TextView
+        android:id="@+id/tv_unreads"
+        android:layout_width="@dimen/size_unreads"
+        android:layout_height="@dimen/size_unreads"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="@dimen/row_padding"
+        android:layout_marginLeft="@dimen/row_padding"
+        android:layout_marginEnd="@dimen/row_padding"
+        android:layout_marginRight="@dimen/row_padding"
+        android:background="@drawable/unreads_circle"
+        android:contentDescription="@string/avatar"
+        android:gravity="center_horizontal|center_vertical"
+        android:text="0"
+        android:textAlignment="center"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/textsize_unreads" />
 
 </RelativeLayout>

@@ -32,6 +32,7 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
         var ivChatRoomThumbnail: ImageView = view.findViewById(R.id.iv_chatroom_thumbnail)
         var tvChatroomname: TextView = view.findViewById(R.id.tv_chatroom_name)
         var tvRecentMessage: TextView = view.findViewById(R.id.tv_recent_messsage)
+        var tvUnreads: TextView = view.findViewById(R.id.tv_unreads)
     }
 
     // Create new views (invoked by the layout manager)
@@ -82,6 +83,24 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
                 .into(holder.ivChatRoomThumbnail)
 
         }
+
+        // unreads
+        chatRooms[position].messages?.let {
+
+            if( it.size.minus(1) > chatRooms[position].seen?.get(my_uid) ?: 0 ) {
+
+                val unreadMessageCount = it.size.minus(1).minus(chatRooms[position].seen?.get(my_uid) ?: 0)
+
+                holder.tvUnreads.visibility = View.VISIBLE
+                holder.tvUnreads.text = unreadMessageCount.toString()
+
+            } else {
+                holder.tvUnreads.visibility = View.GONE
+            }
+
+        }
+
+
         //--------------------
     }
 

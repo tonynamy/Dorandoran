@@ -1,5 +1,7 @@
 <resources>
+    <string name="MIDDLE_DOT">\u00B7</string>
     <string name="app_name">Dorandoran</string>
+
     <string name="loginFailed">Login Failed</string>
     <string name="loginSuccess">Login Success</string>
     <string name="checkingUser">Checking User</string>
@@ -11,8 +13,9 @@
     <string name="cannotCreateChatRoom">Cannot Create Chat Room</string>
     <string name="newChatRoom">New Chat</string>
     <string name="signOut">signOut</string>
-    <string name="unknownUser">Unknown Message</string>
+    <string name="unknownUser">Unknown User</string>
     <string name="unknownMessage">Unknown Message</string>
     <string name="avatar">Avatar</string>
     <string name="unknownTime">Unknown Time</string>
+    <string name="messageSeen">Seen</string>
 </resources>
