@@ -52,7 +52,6 @@ class ChatListActivity : AppCompatActivity() {
     private lateinit var actionBar: ActionBar
 
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
@@ -305,7 +304,7 @@ class ChatListActivity : AppCompatActivity() {
         swipeLayout.isRefreshing = true
 
         uidRef.whereArrayContains("users", userRef).get().addOnCompleteListener { task ->
-            if(task.isSuccessful && task.result != null) {
+            if (task.isSuccessful && task.result != null) {
                 onChatroomRetrieved(task.result!!)
             } else {
                 swipeLayout.isRefreshing = false
@@ -321,8 +320,6 @@ class ChatListActivity : AppCompatActivity() {
         val userRef = rootRef.collection("users").document(currentUser.uid)
 
         uidRef.whereArrayContains("users", userRef).addSnapshotListener { value, e ->
-            Snackbar.make(chatListLayout, R.string.loadingChatRooms, Snackbar.LENGTH_SHORT).show()
-            swipeLayout.isRefreshing = true
             onChatroomRetrieved(value, e)
         }
 
@@ -340,32 +337,29 @@ class ChatListActivity : AppCompatActivity() {
 
     }
 
-    private fun onChatroomRetrieved(documents: QuerySnapshot) = runBlocking<Unit> {
+    private fun onChatroomRetrieved(documents: QuerySnapshot) = GlobalScope.launch {
 
-        GlobalScope.launch {
+        val chatRooms = ArrayList<ChatRoom>()
 
-            val chatRooms = ArrayList<ChatRoom>()
+        for (document in documents) {
 
-            for (document in documents) {
+            Log.d("MyTag", document.id + " => " + document.data)
 
-                Log.d("MyTag", document.id + " => " + document.data)
+            val obj: ChatRoom = document.toObject(ChatRoom::class.java).apply {
 
-                val obj: ChatRoom = document.toObject(ChatRoom::class.java).apply {
+                this.id = document.id
 
-                    this.id = document.id
-
-                    this.users?.forEach { userRef ->
-                        getUser(userRef)?.let { user -> this.userModels?.add(user) }
-                    }
-
+                this.users?.forEach { userRef ->
+                    getUser(userRef)?.let { user -> this.userModels?.add(user) }
                 }
 
-                chatRooms.add(obj)
             }
 
-            runOnUiThread {
-                updateChatRoomView(chatRooms)
-            }
+            chatRooms.add(obj)
+        }
+
+        runOnUiThread {
+            updateChatRoomView(chatRooms)
         }
     }
 
