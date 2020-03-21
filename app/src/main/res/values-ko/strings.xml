@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="MIDDLE_DOT">\u00B7</string>
+    <string name="new_message_notification_channel_id">3372</string>
+    <string name="new_message_notification_channel_name">새 메시지</string>
+
     <string name="app_name">도란도란</string>
 
     <string name="loginSuccess">로그인에 성공하였습니다.</string>

@@ -1,6 +1,5 @@
 package com.iseokchan.dorandoran
 
-import android.R.attr
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -17,9 +16,10 @@ import com.iseokchan.dorandoran.models.Chat
 import com.iseokchan.dorandoran.models.ChatRoom
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_chat.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.lang.Runnable
 
 
 class ChatActivity : AppCompatActivity() {
@@ -42,19 +42,20 @@ class ChatActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
-        if (!intent.hasExtra("uid") || !intent.hasExtra("chatroom_id")) {
+        auth = FirebaseAuth.getInstance()
 
-            // TODO : 전달된 값 없을 경우?
+        if (!intent.hasExtra("chatroom_id") || auth.currentUser == null) {
+
             return
         }
 
+        this.currentUser = auth.currentUser!!
         this.chatroom_id = intent.getStringExtra("chatroom_id")
 
-        auth = FirebaseAuth.getInstance()
         rootRef = FirebaseFirestore.getInstance()
 
         viewManager = LinearLayoutManager(this)
-        viewAdapter = ChatAdapter(ChatRoom(), intent.getStringExtra("uid"))
+        viewAdapter = ChatAdapter(ChatRoom(), this.currentUser.uid)
 
         recyclerView = rv_chats.apply {
             // use this setting to improve performance if you know that changes
@@ -112,7 +113,7 @@ class ChatActivity : AppCompatActivity() {
 
         if (currentUser !== null) {
 
-            getChattings()
+            addSnapshotListener()
 
         } else {
             val intent = Intent(this, LoginActivity::class.java)
@@ -127,14 +128,16 @@ class ChatActivity : AppCompatActivity() {
         this.chatRoomListener?.remove()
     }
 
-    private fun getChattings() {
+    private fun addSnapshotListener() {
 
-        val chatRoomRef = rootRef.collection("chatrooms").document(chatroom_id)
+        if(this.chatRoomListener == null ){
+            val chatRoomRef = rootRef.collection("chatrooms").document(chatroom_id)
 
-        this.chatRoomListener = chatRoomRef.addSnapshotListener { value, e ->
+            this.chatRoomListener = chatRoomRef.addSnapshotListener { value, e ->
 
-            onChatroomRetrieved(value, e)
+                onChatroomRetrieved(value, e)
 
+            }
         }
     }
 
