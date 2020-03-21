@@ -89,7 +89,7 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
 
             if( it.size.minus(1) > chatRooms[position].seen?.get(my_uid) ?: 0 ) {
 
-                val unreadMessageCount = it.size.minus(1).minus(chatRooms[position].seen?.get(my_uid) ?: 0)
+                val unreadMessageCount = it.size.minus(chatRooms[position].seen?.get(my_uid) ?: 0)
 
                 holder.tvUnreads.visibility = View.VISIBLE
                 holder.tvUnreads.text = unreadMessageCount.toString()

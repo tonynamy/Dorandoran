@@ -17,7 +17,7 @@ data class ChatRoom(
 
     val users: List<DocumentReference>? = null,
 
-    val seen: MutableMap<String, Int>? = null,
+    var seen: MutableMap<String, Int>? = null,
 
     @get:Exclude var userModels: ArrayList<User>? = ArrayList(),
 

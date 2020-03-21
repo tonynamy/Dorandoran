@@ -162,8 +162,11 @@ class ChatActivity : AppCompatActivity() {
 
                 chatRoom.messages?.size?.let {
 
-                    if( chatRoom.seen?.get(currentUser.uid) != it.minus(1) ) {
-                        chatRoom.seen?.set(currentUser.uid, it.minus(1))
+                    if (chatRoom.seen == null) {
+                        chatRoom.seen = mutableMapOf( currentUser.uid to it.minus(1))
+                        updateChatRoom(value.reference, chatRoom)
+                    } else if (chatRoom.seen!![currentUser.uid] != it.minus(1)) {
+                        chatRoom.seen!![currentUser.uid] = it.minus(1)
                         updateChatRoom(value.reference, chatRoom)
                     }
 
