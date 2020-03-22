@@ -25,6 +25,12 @@ class ChatAdapter(var chatRoom: ChatRoom, val my_uid: String) :
     private var me: User? = null
     private var notMe: User? = null
 
+    interface onChatClicked {
+        fun onMessageLongClicked(view: View, position: Int, chat: Chat)
+    }
+
+    var itemClick: onChatClicked? = null
+
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
     // you provide access to all the views for a data item in a view holder.
@@ -84,6 +90,13 @@ class ChatAdapter(var chatRoom: ChatRoom, val my_uid: String) :
         // - replace the contents of the view with that element
 
         val currentChat = chatRoom.messages?.get(position) ?: return
+
+        itemClick?.let {
+            holder.itemView.setOnLongClickListener { _ ->
+                it.onMessageLongClicked(holder.itemView, position, currentChat)
+                true
+            }
+        }
 
         val timeFormat = SimpleDateFormat("MM/dd a hh:mm", Locale.KOREA)
 

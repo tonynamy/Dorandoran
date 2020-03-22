@@ -1,9 +1,12 @@
 package com.iseokchan.dorandoran
 
-import android.content.Intent
+import android.content.*
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.ActionBar
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -55,7 +58,29 @@ class ChatActivity : AppCompatActivity() {
         rootRef = FirebaseFirestore.getInstance()
 
         viewManager = LinearLayoutManager(this)
-        viewAdapter = ChatAdapter(ChatRoom(), this.currentUser.uid)
+        viewAdapter = ChatAdapter(ChatRoom(), this.currentUser.uid).apply {
+            itemClick = object : ChatAdapter.onChatClicked {
+                override fun onMessageLongClicked(view: View, position: Int, chat: Chat) {
+                    val colors = arrayOf(getString(R.string.copy))
+
+                    val builder: AlertDialog.Builder = AlertDialog.Builder(this@ChatActivity)
+                    builder.setTitle(getString(R.string.selectAction))
+                    builder.setItems(colors
+                    ) { _, which ->
+                        when (which) {
+                            0 -> { // copy
+                                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText(getString(R.string.message), chat.content)
+                                clipboard.primaryClip = clip
+
+                                Toast.makeText(this@ChatActivity, getString(R.string.copied), Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    builder.show()
+                }
+            }
+        }
 
         recyclerView = rv_chats.apply {
             // use this setting to improve performance if you know that changes
@@ -73,7 +98,13 @@ class ChatActivity : AppCompatActivity() {
         recyclerView.addOnLayoutChangeListener { _, _, _, bottom, _, _, _, _, oldBottom ->
             if (bottom < oldBottom) {
                 recyclerView.postDelayed(
-                    Runnable { recyclerView.smoothScrollToPosition(this.viewAdapter.itemCount.minus(1)) },
+                    Runnable {
+                        recyclerView.smoothScrollToPosition(
+                            this.viewAdapter.itemCount.minus(
+                                1
+                            )
+                        )
+                    },
                     100
                 )
             }
@@ -130,7 +161,7 @@ class ChatActivity : AppCompatActivity() {
 
     private fun addSnapshotListener() {
 
-        if(this.chatRoomListener == null ){
+        if (this.chatRoomListener == null) {
             val chatRoomRef = rootRef.collection("chatrooms").document(chatroom_id)
 
             this.chatRoomListener = chatRoomRef.addSnapshotListener { value, e ->
@@ -149,50 +180,50 @@ class ChatActivity : AppCompatActivity() {
         }
 
     private fun onChatRoomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) =
-            GlobalScope.launch {
+        GlobalScope.launch {
 
-                if (e != null || value == null) {
-                    Log.w("MyTag", "Listen failed.", e)
-                    return@launch
+            if (e != null || value == null) {
+                Log.w("MyTag", "Listen failed.", e)
+                return@launch
+            }
+
+            val chatRoom = value.toObject(ChatRoom::class.java)
+
+            if (chatRoom == null) {
+                Log.w("MyTag", "Conversion failed.", e)
+                return@launch
+            }
+
+            chatRoom.messages?.size?.let {
+
+                if (chatRoom.seen == null) {
+                    chatRoom.seen = mutableMapOf(currentUser.uid to it.minus(1))
+                    updateChatRoom(value.reference, chatRoom)
+                } else if (chatRoom.seen!![currentUser.uid] != it.minus(1)) {
+                    chatRoom.seen!![currentUser.uid] = it.minus(1)
+                    updateChatRoom(value.reference, chatRoom)
                 }
 
-                val chatRoom = value.toObject(ChatRoom::class.java)
 
-                if (chatRoom == null) {
-                    Log.w("MyTag", "Conversion failed.", e)
-                    return@launch
-                }
+            }
 
-                chatRoom.messages?.size?.let {
+            val users = ArrayList<User>()
 
-                    if (chatRoom.seen == null) {
-                        chatRoom.seen = mutableMapOf( currentUser.uid to it.minus(1))
-                        updateChatRoom(value.reference, chatRoom)
-                    } else if (chatRoom.seen!![currentUser.uid] != it.minus(1)) {
-                        chatRoom.seen!![currentUser.uid] = it.minus(1)
-                        updateChatRoom(value.reference, chatRoom)
+            val getUserList = async {
+                chatRoom.users?.let {
+                    for (userRef in it) {
+                        getUser(userRef)?.let { it1 -> users.add(it1) }
                     }
-
-
                 }
+            }
 
-                val users = ArrayList<User>()
+            getUserList.await()
 
-                val getUserList = async {
-                    chatRoom.users?.let {
-                        for (userRef in it) {
-                            getUser(userRef)?.let { it1 -> users.add(it1) }
-                        }
-                    }
-                }
+            chatRoom.userModels = users
 
-                getUserList.await()
-
-                chatRoom.userModels = users
-
-                runOnUiThread {
-                    updateChatView(chatRoom)
-                }
+            runOnUiThread {
+                updateChatView(chatRoom)
+            }
         }
 
     private fun updateChatRoom(chatRoomRef: DocumentReference, chatRoom: ChatRoom) {

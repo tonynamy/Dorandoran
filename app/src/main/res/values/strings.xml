@@ -21,4 +21,8 @@
     <string name="avatar">Avatar</string>
     <string name="unknownTime">Unknown Time</string>
     <string name="messageSeen">Seen</string>
+    <string name="selectAction">Select an Action.</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
+    <string name="message">Message</string>
 </resources>
