@@ -135,7 +135,7 @@ class ChatActivity : AppCompatActivity() {
 
             this.chatRoomListener = chatRoomRef.addSnapshotListener { value, e ->
 
-                onChatroomRetrieved(value, e)
+                onChatRoomRetrieved(value, e)
 
             }
         }
@@ -148,7 +148,7 @@ class ChatActivity : AppCompatActivity() {
             this.uid = userRef.id
         }
 
-    private fun onChatroomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) =
+    private fun onChatRoomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) =
             GlobalScope.launch {
 
                 if (e != null || value == null) {
