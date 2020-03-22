@@ -3,9 +3,7 @@ package com.iseokchan.dorandoran
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Context
-import android.content.DialogInterface
-import android.content.Intent
+import android.content.*
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -14,6 +12,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
@@ -71,13 +70,30 @@ class ChatListActivity : AppCompatActivity() {
 
             itemClick = object : ChatRoomAdapter.onItemClicked {
 
-                override fun onChatRoomClicked(view: View, position: Int, chatroom: ChatRoom) {
+                override fun onChatRoomClicked(view: View, position: Int, chatRoom: ChatRoom) {
 
                     val intent = Intent(this@ChatListActivity, ChatActivity::class.java)
                     intent.putExtra("uid", currentUser.uid)
-                    intent.putExtra("chatroom_id", chatroom.id)
+                    intent.putExtra("chatroom_id", chatRoom.id)
                     startActivity(intent)
 
+                }
+
+                override fun onChatRoomLongClicked(view: View, position: Int, chatRoom: ChatRoom) {
+                    val colors = arrayOf(getString(R.string.leaveRoom))
+
+                    val builder: AlertDialog.Builder = AlertDialog.Builder(this@ChatListActivity)
+                    builder.setTitle(getString(R.string.selectAction))
+                    builder.setItems(
+                        colors
+                    ) { _, which ->
+                        when (which) {
+                            0 -> { // copy
+                                chatRoom.id?.let { leaveRoom(it) }
+                            }
+                        }
+                    }
+                    builder.show()
                 }
             }
 
@@ -104,6 +120,14 @@ class ChatListActivity : AppCompatActivity() {
             getChatRoomsOnce()
         }
 
+    }
+
+    private fun leaveRoom(chatRoom_id: String) {
+        rootRef.collection("chatrooms").document(chatRoom_id).update(
+            "users",
+            FieldValue.arrayRemove(rootRef.collection("users").document(currentUser.uid))
+        )
+        Toast.makeText(this, getString(R.string.leavedRoom), Toast.LENGTH_SHORT).show()
     }
 
     // API 26 이상을 위한 Notification Channel 생성

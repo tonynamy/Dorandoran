@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="MIDDLE_DOT">\u00B7</string>
     <string name="new_message_notification_channel_id">3372</string>
@@ -25,4 +26,7 @@
     <string name="copy">Copy</string>
     <string name="copied">Copied</string>
     <string name="message">Message</string>
+    <string name="leaveRoom">Leave Room</string>
+    <string name="leavedRoom">You leaved the room.</string>
+    <string name="leaveRoomConfirm">Do you really want to leave the room.</string>
 </resources>

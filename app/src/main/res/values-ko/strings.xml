@@ -26,4 +26,7 @@
     <string name="copy">복사</string>
     <string name="copied">복사되었습니다.</string>
     <string name="message">메시지</string>
+    <string name="leaveRoom">채팅방 나가기</string>
+    <string name="leavedRoom">채팅방을 나갔습니다.</string>
+    <string name="leaveRoomConfirm">정말로 채팅방을 나가시겠습니까?</string>
 </resources>

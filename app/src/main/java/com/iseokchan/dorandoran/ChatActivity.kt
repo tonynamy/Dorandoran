@@ -1,8 +1,13 @@
 package com.iseokchan.dorandoran
 
-import android.content.*
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
@@ -65,15 +70,22 @@ class ChatActivity : AppCompatActivity() {
 
                     val builder: AlertDialog.Builder = AlertDialog.Builder(this@ChatActivity)
                     builder.setTitle(getString(R.string.selectAction))
-                    builder.setItems(colors
+                    builder.setItems(
+                        colors
                     ) { _, which ->
                         when (which) {
                             0 -> { // copy
-                                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText(getString(R.string.message), chat.content)
+                                val clipboard =
+                                    getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip =
+                                    ClipData.newPlainText(getString(R.string.message), chat.content)
                                 clipboard.primaryClip = clip
 
-                                Toast.makeText(this@ChatActivity, getString(R.string.copied), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    this@ChatActivity,
+                                    getString(R.string.copied),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     }
@@ -96,7 +108,7 @@ class ChatActivity : AppCompatActivity() {
         }
 
         recyclerView.addOnLayoutChangeListener { _, _, _, bottom, _, _, _, _, oldBottom ->
-            if (bottom < oldBottom) {
+            if (bottom < oldBottom && this.viewAdapter.itemCount > 0) {
                 recyclerView.postDelayed(
                     Runnable {
                         recyclerView.smoothScrollToPosition(
@@ -130,6 +142,29 @@ class ChatActivity : AppCompatActivity() {
         this.actionBar = supportActionBar!!
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.chat_actionbar_menus, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        return when (item!!.itemId) {
+            R.id.leave_room -> {
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.leaveRoom))
+                    .setMessage(getString(R.string.leaveRoomConfirm))
+                    .setPositiveButton(
+                        android.R.string.yes
+                    ) { _, _ ->
+                        leaveRoom()
+                    }
+                    .setNegativeButton(android.R.string.no, null).show()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     public override fun onStart() {
         super.onStart()
         // Check if user is signed in (non-null) and update UI accordingly.
@@ -157,6 +192,15 @@ class ChatActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         this.chatRoomListener?.remove()
+    }
+
+    private fun leaveRoom() {
+        rootRef.collection("chatrooms").document(chatroom_id).update(
+            "users",
+            FieldValue.arrayRemove(rootRef.collection("users").document(currentUser.uid))
+        )
+        Toast.makeText(this, getString(R.string.leavedRoom), Toast.LENGTH_SHORT).show()
+        finish()
     }
 
     private fun addSnapshotListener() {
@@ -195,15 +239,7 @@ class ChatActivity : AppCompatActivity() {
             }
 
             chatRoom.messages?.size?.let {
-
-                if (chatRoom.seen == null) {
-                    chatRoom.seen = mutableMapOf(currentUser.uid to it.minus(1))
-                    updateChatRoom(value.reference, chatRoom)
-                } else if (chatRoom.seen!![currentUser.uid] != it.minus(1)) {
-                    chatRoom.seen!![currentUser.uid] = it.minus(1)
-                    updateChatRoom(value.reference, chatRoom)
-                }
-
+               updateChatRoom(value.reference, mutableMapOf("seen" to mapOf(currentUser.uid to it.minus(1))))
 
             }
 
@@ -226,8 +262,8 @@ class ChatActivity : AppCompatActivity() {
             }
         }
 
-    private fun updateChatRoom(chatRoomRef: DocumentReference, chatRoom: ChatRoom) {
-        chatRoomRef.set(chatRoom, SetOptions.merge())
+    private fun updateChatRoom(chatRoomRef: DocumentReference, value: Any) {
+        chatRoomRef.set(value, SetOptions.merge())
     }
 
     private fun updateChatView(chatRoom: ChatRoom) {

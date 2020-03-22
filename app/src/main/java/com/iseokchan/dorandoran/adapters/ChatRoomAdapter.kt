@@ -19,7 +19,8 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
     RecyclerView.Adapter<ChatRoomAdapter.MyViewHolder>() {
 
     interface onItemClicked {
-        fun onChatRoomClicked(view: View, position: Int, chatroom: ChatRoom)
+        fun onChatRoomClicked(view: View, position: Int, chatRoom: ChatRoom)
+        fun onChatRoomLongClicked(view: View, position: Int, chatRoom: ChatRoom)
     }
 
     var itemClick: onItemClicked? = null
@@ -54,6 +55,10 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
             holder.view.setOnClickListener { v ->
                 it.onChatRoomClicked(v, position, chatRooms[position])
             }
+            holder.view.setOnLongClickListener {v ->
+                it.onChatRoomLongClicked(v, position, chatRooms[position])
+                true
+            }
         }
 
         //1:1 채팅 전용 - 그룹 채팅 구현 시 변경 필요
@@ -87,9 +92,9 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
         // unreads
         chatRooms[position].messages?.let {
 
-            if( it.size.minus(1) > chatRooms[position].seen?.get(my_uid) ?: 0 ) {
+            val unreadMessageCount = it.size.minus(chatRooms[position].seen?.get(my_uid) ?: -1).minus(1)
 
-                val unreadMessageCount = it.size.minus(chatRooms[position].seen?.get(my_uid) ?: 0)
+            if( unreadMessageCount > 0 ) {
 
                 holder.tvUnreads.visibility = View.VISIBLE
                 holder.tvUnreads.text = unreadMessageCount.toString()
