@@ -29,4 +29,8 @@
     <string name="leaveRoom">채팅방 나가기</string>
     <string name="leavedRoom">채팅방을 나갔습니다.</string>
     <string name="leaveRoomConfirm">정말로 채팅방을 나가시겠습니까?</string>
+    <string name="choose_emoticon">이모티콘 선택</string>
+    <string name="send_message">메시지 전송</string>
+    <string name="loadingEmoticons">이모티콘 로딩중</string>
+    <string name="emoticon">이모티콘</string>
 </resources>

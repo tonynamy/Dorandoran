@@ -9,24 +9,28 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.CircularProgressDrawable
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.*
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import com.iseokchan.dorandoran.adapters.ChatAdapter
-import com.iseokchan.dorandoran.models.Chat
-import com.iseokchan.dorandoran.models.ChatRoom
-import com.iseokchan.dorandoran.models.User
+import com.iseokchan.dorandoran.adapters.EmoticonPackAdapter
+import com.iseokchan.dorandoran.models.*
 import kotlinx.android.synthetic.main.activity_chat.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.tasks.await
 
 
@@ -41,16 +45,20 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var viewManager: RecyclerView.LayoutManager
 
     private lateinit var actionBar: ActionBar
+    private lateinit var rootStorage: FirebaseStorage
+    private lateinit var rootStorageRef: StorageReference
 
     private var chatRoomListener: ListenerRegistration? = null
 
-    private var chatroom_id = ""
+    private var chatroomId = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
         auth = FirebaseAuth.getInstance()
+        rootStorage = FirebaseStorage.getInstance()
+        rootStorageRef = rootStorage.reference
 
         if (!intent.hasExtra("chatroom_id") || auth.currentUser == null) {
 
@@ -58,7 +66,7 @@ class ChatActivity : AppCompatActivity() {
         }
 
         this.currentUser = auth.currentUser!!
-        this.chatroom_id = intent.getStringExtra("chatroom_id")
+        this.chatroomId = intent.getStringExtra("chatroom_id") ?: return
 
         rootRef = FirebaseFirestore.getInstance()
 
@@ -79,7 +87,7 @@ class ChatActivity : AppCompatActivity() {
                                     getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val clip =
                                     ClipData.newPlainText(getString(R.string.message), chat.content)
-                                clipboard.primaryClip = clip
+                                clipboard.setPrimaryClip(clip)
 
                                 Toast.makeText(
                                     this@ChatActivity,
@@ -107,10 +115,10 @@ class ChatActivity : AppCompatActivity() {
 
         }
 
-        recyclerView.addOnLayoutChangeListener { _, _, _, bottom, _, _, _, _, oldBottom ->
+        recyclerView.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, oldBottom ->
             if (bottom < oldBottom && this.viewAdapter.itemCount > 0) {
                 recyclerView.postDelayed(
-                    Runnable {
+                    {
                         recyclerView.smoothScrollToPosition(
                             this.viewAdapter.itemCount.minus(
                                 1
@@ -119,13 +127,19 @@ class ChatActivity : AppCompatActivity() {
                     },
                     100
                 )
+
             }
+        }
+
+        et_message.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus)
+                emoticonFooter.visibility = View.GONE
         }
 
         btn_sendMessage.setOnClickListener {
 
             val message = et_message.text.toString()
-            val chatRoomRef = rootRef.collection("chatrooms").document(chatroom_id)
+            val chatRoomRef = rootRef.collection("chatrooms").document(chatroomId)
             chatRoomRef.update(
                 "messages", FieldValue.arrayUnion(
                     Chat(
@@ -139,7 +153,107 @@ class ChatActivity : AppCompatActivity() {
 
         }
 
+        btn_emoticon.setOnClickListener {
+            if (emoticonFooter.visibility == View.GONE) {
+                et_message.clearFocus()
+
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(et_message.windowToken, 0)
+
+                emoticonFooter.visibility = View.VISIBLE
+            } else {
+                emoticonFooter.visibility = View.GONE
+            }
+        }
+
         this.actionBar = supportActionBar!!
+
+        //load emoticons
+        loadEmoticons()
+
+        val circularProgressDrawable = CircularProgressDrawable(this)
+        circularProgressDrawable.strokeWidth = 5f
+        circularProgressDrawable.centerRadius = 30f
+        circularProgressDrawable.start()
+
+        emoticonViewPagerLoader.visibility = View.VISIBLE
+        emoticonViewPagerLoader.setImageDrawable(circularProgressDrawable)
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        if (emoticonFooter.visibility == View.VISIBLE) { // HIDE Emoticon View pager
+            emoticonFooter.visibility = View.INVISIBLE
+        } else {
+            if (!ChatListActivity().lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                val intent = Intent(this, ChatListActivity::class.java)
+                startActivity(intent)
+            }
+            finish()
+        }
+    }
+
+    private fun loadEmoticonCallback(task: Task<QuerySnapshot>) = runBlocking {
+
+        val emoticonPacks = ArrayList<EmoticonPack>()
+
+        if (task.isSuccessful && task.result != null) {
+
+            val querySnapshot = task.result
+
+            val emoticonPackDeferreds = arrayListOf<Deferred<List<StorageReference>>>()
+
+            for (document in querySnapshot) {
+                emoticonPackDeferreds.add(GlobalScope.async {
+                    rootStorage.reference.child("emoticons").child(document.id).listAll()
+                        .await().items
+                })
+                emoticonPacks.add(document.toObject(EmoticonPack::class.java))
+            }
+
+            val emoticonPackDeferredValue = emoticonPackDeferreds.awaitAll()
+
+            for (i in emoticonPackDeferredValue.indices) {
+
+                val emoticons = arrayListOf<Emoticon>()
+                val emoticonsDeferred = arrayListOf<Deferred<String>>()
+
+                for (emoticonStorage in emoticonPackDeferredValue[i]) {
+                    emoticons.add(Emoticon(emoticonStorage.name))
+                    emoticonsDeferred.add(GlobalScope.async {
+                        emoticonStorage.downloadUrl.await().toString()
+                    })
+                }
+
+                val emoticonsDeferredValue = emoticonsDeferred.awaitAll()
+
+                for (j in emoticonsDeferredValue.indices) {
+                    emoticons[j].url = emoticonsDeferredValue[j]
+                }
+
+                emoticonPacks[i].emoticons = emoticons
+
+            }
+        }
+
+        runOnUiThread {
+            emoticonViewPagerLoader.visibility = View.GONE
+            emoticonViewPager.visibility = View.VISIBLE
+            emoticonViewPager.adapter = EmoticonPackAdapter(emoticonPacks)
+            emoticonViewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
+        }
+
+    }
+
+    private fun loadEmoticons() {
+
+        rootRef.collection("emoticons").get().addOnCompleteListener {
+            GlobalScope.launch {
+                loadEmoticonCallback(it)
+            }
+        }
+
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -165,9 +279,9 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
-    public override fun onStart() {
-        super.onStart()
-        // Check if user is signed in (non-null) and update UI accordingly.
+    public override fun onResume() {
+        super.onResume()
+
         auth.currentUser?.let {
             this.currentUser = it
         }
@@ -189,13 +303,14 @@ class ChatActivity : AppCompatActivity() {
 
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onStop() {
+        super.onStop()
         this.chatRoomListener?.remove()
+        this.chatRoomListener = null
     }
 
     private fun leaveRoom() {
-        rootRef.collection("chatrooms").document(chatroom_id).update(
+        rootRef.collection("chatrooms").document(chatroomId).update(
             "users",
             FieldValue.arrayRemove(rootRef.collection("users").document(currentUser.uid))
         )
@@ -206,7 +321,7 @@ class ChatActivity : AppCompatActivity() {
     private fun addSnapshotListener() {
 
         if (this.chatRoomListener == null) {
-            val chatRoomRef = rootRef.collection("chatrooms").document(chatroom_id)
+            val chatRoomRef = rootRef.collection("chatrooms").document(chatroomId)
 
             this.chatRoomListener = chatRoomRef.addSnapshotListener { value, e ->
 
@@ -239,7 +354,10 @@ class ChatActivity : AppCompatActivity() {
             }
 
             chatRoom.messages?.size?.let {
-               updateChatRoom(value.reference, mutableMapOf("seen" to mapOf(currentUser.uid to it.minus(1))))
+                updateChatRoom(
+                    value.reference,
+                    mutableMapOf("seen" to mapOf(currentUser.uid to it.minus(1)))
+                )
 
             }
 

@@ -29,4 +29,8 @@
     <string name="leaveRoom">Leave Room</string>
     <string name="leavedRoom">You leaved the room.</string>
     <string name="leaveRoomConfirm">Do you really want to leave the room.</string>
+    <string name="choose_emoticon">Choose Emoticon</string>
+    <string name="send_message">Send Message</string>
+    <string name="loadingEmoticons">Loading Emoticons</string>
+    <string name="emoticon">Emoticon</string>
 </resources>
