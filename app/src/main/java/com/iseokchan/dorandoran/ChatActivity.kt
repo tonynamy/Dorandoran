@@ -72,7 +72,7 @@ class ChatActivity : AppCompatActivity() {
 
         viewManager = LinearLayoutManager(this)
         viewAdapter = ChatAdapter(ChatRoom(), this.currentUser.uid).apply {
-            itemClick = object : ChatAdapter.onChatClicked {
+            callBack = object : ChatAdapter.chatAdapterCallback {
                 override fun onMessageLongClicked(view: View, position: Int, chat: Chat) {
                     val colors = arrayOf(getString(R.string.copy))
 
@@ -98,6 +98,19 @@ class ChatActivity : AppCompatActivity() {
                         }
                     }
                     builder.show()
+                }
+
+                override fun onGlideLoadFin() {
+                    recyclerView.postDelayed(
+                        {
+                            recyclerView.smoothScrollToPosition(
+                                this@apply.itemCount.minus(
+                                    1
+                                )
+                            )
+                        },
+                        100
+                    )
                 }
             }
         }
@@ -180,17 +193,30 @@ class ChatActivity : AppCompatActivity() {
         emoticonViewPagerLoader.setImageDrawable(circularProgressDrawable)
     }
 
+    private fun sendEmoticon(emoticon:Emoticon) {
+        val chatRoomRef = rootRef.collection("chatrooms").document(chatroomId)
+        chatRoomRef.update(
+            "messages", FieldValue.arrayUnion(
+                Chat(
+                    uid = currentUser.uid,
+                    createdAt = Timestamp.now().toDate(),
+                    emoticon = emoticon
+                )
+            )
+        )
+    }
+
     override fun onBackPressed() {
-        super.onBackPressed()
         if (emoticonFooter.visibility == View.VISIBLE) { // HIDE Emoticon View pager
-            emoticonFooter.visibility = View.INVISIBLE
-        } else {
-            if (!ChatListActivity().lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                val intent = Intent(this, ChatListActivity::class.java)
-                startActivity(intent)
-            }
-            finish()
+            emoticonFooter.visibility = View.GONE
+            return
         }
+
+        if (!ChatListActivity().lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            val intent = Intent(this, ChatListActivity::class.java)
+            startActivity(intent)
+        }
+        super.onBackPressed()
     }
 
     private fun loadEmoticonCallback(task: Task<QuerySnapshot>) = runBlocking {
@@ -208,7 +234,9 @@ class ChatActivity : AppCompatActivity() {
                     rootStorage.reference.child("emoticons").child(document.id).listAll()
                         .await().items
                 })
-                emoticonPacks.add(document.toObject(EmoticonPack::class.java))
+                emoticonPacks.add(document.toObject(EmoticonPack::class.java).apply {
+                    id = document.id
+                })
             }
 
             val emoticonPackDeferredValue = emoticonPackDeferreds.awaitAll()
@@ -219,7 +247,7 @@ class ChatActivity : AppCompatActivity() {
                 val emoticonsDeferred = arrayListOf<Deferred<String>>()
 
                 for (emoticonStorage in emoticonPackDeferredValue[i]) {
-                    emoticons.add(Emoticon(emoticonStorage.name))
+                    emoticons.add(Emoticon(displayName = emoticonStorage.name))
                     emoticonsDeferred.add(GlobalScope.async {
                         emoticonStorage.downloadUrl.await().toString()
                     })
@@ -239,8 +267,18 @@ class ChatActivity : AppCompatActivity() {
         runOnUiThread {
             emoticonViewPagerLoader.visibility = View.GONE
             emoticonViewPager.visibility = View.VISIBLE
-            emoticonViewPager.adapter = EmoticonPackAdapter(emoticonPacks)
+            emoticonViewPager.adapter = EmoticonPackAdapter(emoticonPacks).apply {
+                itemClickCallback = object: EmoticonPackAdapter.onItemClicked {
+                    override fun onEmoticonClicked(emoticon: Emoticon) {
+                        sendEmoticon(emoticon)
+                    }
+
+                }
+            }
             emoticonViewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
+
+            viewAdapter.emoticonPacks = emoticonPacks
+
         }
 
     }

@@ -6,7 +6,7 @@ import java.util.*
 data class Chat (
     val content: String = "",
     val uid: String = "",
-
     @ServerTimestamp
-    val createdAt: Date? = null
+    val createdAt: Date? = null,
+    val emoticon: Emoticon? = null
 )

@@ -13,6 +13,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.iseokchan.dorandoran.R
 import com.iseokchan.dorandoran.models.ChatRoom
+import com.iseokchan.dorandoran.models.EmoticonPack
 import com.iseokchan.dorandoran.models.User
 
 class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :

@@ -15,6 +15,7 @@
         android:layout_height="34dp"
         android:layout_alignParentStart="true"
         android:background="@drawable/user_circle"
+        android:contentDescription="@string/avatar"
         android:scaleType="centerInside" />
 
     <TextView
@@ -27,26 +28,23 @@
         android:paddingBottom="4dp"
         android:text="@string/unknownUser" />
 
-    <TextView
-        android:id="@+id/message_body"
+    <ImageView
+        android:id="@+id/message_image"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/name"
         android:layout_alignStart="@+id/name"
         android:background="@drawable/message_bubble_not_my"
-        android:elevation="2dp"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp"
         android:text="@string/unknownMessage"
         android:textSize="18sp"
-        android:visibility="visible" />
+        android:contentDescription="@string/emoticon" />
 
     <TextView
         android:id="@+id/message_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/message_body"
-        android:layout_alignStart="@id/message_body"
+        android:layout_below="@id/message_image"
+        android:layout_alignStart="@id/message_image"
         android:text="@string/unknownTime"
         android:textColor="@android:color/darker_gray"
         android:textSize="12sp" />
@@ -55,10 +53,11 @@
         android:id="@+id/message_seen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/message_body"
+        android:layout_below="@id/message_image"
         android:layout_toEndOf="@+id/message_time"
         android:text="@string/messageSeen"
         android:textColor="@android:color/darker_gray"
         android:textSize="12sp"
         tools:ignore="RtlSymmetry" />
+
 </RelativeLayout>
