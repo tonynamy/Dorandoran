@@ -31,9 +31,7 @@ import com.iseokchan.dorandoran.adapters.ChatRoomAdapter
 import com.iseokchan.dorandoran.models.ChatRoom
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_chatlist.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlinx.coroutines.tasks.await
 
 
@@ -315,13 +313,6 @@ class ChatListActivity : AppCompatActivity() {
 
     }
 
-    suspend fun getUser(userRef: DocumentReference) = userRef
-        .get()
-        .await()
-        .toObject(User::class.java)?.apply {
-            this.uid = userRef.id
-        }
-
     private fun getChatRoomsOnce() {
 
         val uidRef = rootRef.collection("chatrooms")
@@ -369,22 +360,45 @@ class ChatListActivity : AppCompatActivity() {
     private fun onChatroomRetrieved(documents: QuerySnapshot) = GlobalScope.launch {
 
         val chatRooms = ArrayList<ChatRoom>()
+        val userIdRefMap = HashMap<String, DocumentReference>()
 
         for (document in documents) {
 
-            Log.d("MyTag", document.id + " => " + document.data)
-
-            val obj: ChatRoom = document.toObject(ChatRoom::class.java).apply {
-
+            val chatRoomObj = document.toObject(ChatRoom::class.java).apply {
                 this.id = document.id
-
-                this.users?.forEach { userRef ->
-                    getUser(userRef)?.let { user -> this.userModels?.add(user) }
-                }
-
             }
 
-            chatRooms.add(obj)
+            chatRooms.add(chatRoomObj)
+
+            chatRoomObj.users?.forEach {
+                userIdRefMap.put(it.id, it)
+            }
+
+        }
+
+        //유저 불러오기
+
+        val userDeferredList = ArrayList<Deferred<User?>>()
+
+        userIdRefMap.forEach { (_, u) ->
+            userDeferredList.add(GlobalScope.async {
+                u.get().await().toObject(User::class.java).apply {
+                    this?.uid = u.id
+                }
+            })
+        }
+
+        val userList: List<User> = userDeferredList.awaitAll().filterNotNull()
+        val userIdModelMap: Map<String, User> = userList.associateBy({ it.uid!! }, { it })
+
+        // 유저 매핑
+
+        for(chatRoom in chatRooms) {
+            chatRoom.userModels = ArrayList()
+            chatRoom.users?.forEach { ref ->
+                if(userIdModelMap.containsKey(ref.id))
+                    chatRoom.userModels?.add(userIdModelMap.getOrElse(ref.id) { return@forEach })
+            }
         }
 
         runOnUiThread {

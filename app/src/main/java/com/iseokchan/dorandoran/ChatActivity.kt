@@ -193,7 +193,7 @@ class ChatActivity : AppCompatActivity() {
         emoticonViewPagerLoader.setImageDrawable(circularProgressDrawable)
     }
 
-    private fun sendEmoticon(emoticon:Emoticon) {
+    private fun sendEmoticon(emoticon: Emoticon) {
         val chatRoomRef = rootRef.collection("chatrooms").document(chatroomId)
         chatRoomRef.update(
             "messages", FieldValue.arrayUnion(
@@ -268,7 +268,7 @@ class ChatActivity : AppCompatActivity() {
             emoticonViewPagerLoader.visibility = View.GONE
             emoticonViewPager.visibility = View.VISIBLE
             emoticonViewPager.adapter = EmoticonPackAdapter(emoticonPacks).apply {
-                itemClickCallback = object: EmoticonPackAdapter.onItemClicked {
+                itemClickCallback = object : EmoticonPackAdapter.onItemClicked {
                     override fun onEmoticonClicked(emoticon: Emoticon) {
                         sendEmoticon(emoticon)
                     }
@@ -369,13 +369,6 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
-    suspend fun getUser(userRef: DocumentReference) = userRef
-        .get()
-        .await()
-        .toObject(User::class.java)?.apply {
-            this.uid = userRef.id
-        }
-
     private fun onChatRoomRetrieved(value: DocumentSnapshot?, e: FirebaseFirestoreException?) =
         GlobalScope.launch {
 
@@ -399,19 +392,21 @@ class ChatActivity : AppCompatActivity() {
 
             }
 
-            val users = ArrayList<User>()
+            val userDeferredList = ArrayList<Deferred<User?>>()
 
-            val getUserList = async {
-                chatRoom.users?.let {
-                    for (userRef in it) {
-                        getUser(userRef)?.let { it1 -> users.add(it1) }
+            chatRoom.users?.forEach {
+                userDeferredList.add(async {
+                    it.get().await().toObject(User::class.java)?.apply {
+                        this.uid = it.id
                     }
-                }
+                })
             }
 
-            getUserList.await()
+            val users: List<User> = userDeferredList.awaitAll().filterNotNull()
 
-            chatRoom.userModels = users
+            users.forEach {
+                chatRoom.userModels?.add(it)
+            }
 
             runOnUiThread {
                 updateChatView(chatRoom)

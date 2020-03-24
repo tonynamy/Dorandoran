@@ -66,7 +66,7 @@ class ChatRoomAdapter(var chatRooms: ArrayList<ChatRoom>, var my_uid: String?) :
         holder.tvChatroomname.text = chatRooms[position].userModels?.find { !it.uid.equals(my_uid) }?.displayName
             ?: holder.view.context.getString(R.string.unknownUser)
 
-        holder.tvRecentMessage.text = chatRooms[position].messages?.last()?.content ?: ""
+        holder.tvRecentMessage.text = if (chatRooms[position].messages?.last()?.emoticon == null) chatRooms[position].messages?.last()?.content ?: "" else "(이모티콘)"
 
         val profileImage = chatRooms[position].userModels?.find { !it.uid.equals(my_uid) }?.profileImage
 
