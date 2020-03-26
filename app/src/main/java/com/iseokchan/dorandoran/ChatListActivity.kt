@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.*
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -17,6 +18,7 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -28,6 +30,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.*
 import com.google.firebase.iid.FirebaseInstanceId
 import com.iseokchan.dorandoran.adapters.ChatRoomAdapter
+import com.iseokchan.dorandoran.classes.ForceUpdateChecker
 import com.iseokchan.dorandoran.models.ChatRoom
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_chatlist.*
@@ -63,6 +66,25 @@ class ChatListActivity : AppCompatActivity() {
             createNotificationChannel()
         }
 
+        ForceUpdateChecker.with(this)
+            .onUpdateNeeded(object : ForceUpdateChecker.OnUpdateNeededListener {
+                override fun onUpdateNeeded(updateUrl: String?) {
+                    val dialog: AlertDialog =
+                        AlertDialog.Builder(this@ChatListActivity)
+                            .setTitle(getString(R.string.newVersionAvailable))
+                            .setMessage(getString(R.string.pleaseUpdate))
+                            .setPositiveButton(getString(R.string.update)) { _, _ ->
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl))
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+                            }.setNegativeButton(getString(R.string.noThanks)) { _, _ ->
+                                ActivityCompat.finishAffinity(this@ChatListActivity)
+                            }.create()
+                    dialog.show()
+                }
+
+            }).check()
+
         viewManager = LinearLayoutManager(this)
         viewAdapter = ChatRoomAdapter(ArrayList<ChatRoom>(), null).apply {
 
@@ -74,8 +96,6 @@ class ChatListActivity : AppCompatActivity() {
                     intent.putExtra("uid", currentUser.uid)
                     intent.putExtra("chatroom_id", chatRoom.id)
                     startActivity(intent)
-                    finish()
-
                 }
 
                 override fun onChatRoomLongClicked(view: View, position: Int, chatRoom: ChatRoom) {
@@ -184,10 +204,11 @@ class ChatListActivity : AppCompatActivity() {
 
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        input.hint = getString(R.string.enterOtherUserEmail)
         builder.setView(input)
 
         builder.setPositiveButton(
-            "OK"
+            android.R.string.ok
         ) { _, _ ->
             val searchEmail = input.text.toString()
 
@@ -236,8 +257,8 @@ class ChatListActivity : AppCompatActivity() {
 
 
         }
-        builder.setNegativeButton("Cancel",
-            DialogInterface.OnClickListener { dialog, _ -> dialog.cancel() })
+        builder.setNegativeButton(android.R.string.cancel
+        ) { dialog, _ -> dialog.cancel() }
 
         builder.show()
     }
@@ -319,7 +340,6 @@ class ChatListActivity : AppCompatActivity() {
         val uidRef = rootRef.collection("chatrooms")
         val userRef = rootRef.collection("users").document(currentUser.uid)
 
-        Snackbar.make(chatListLayout, R.string.loadingChatRooms, Snackbar.LENGTH_SHORT).show()
         swipeLayout.isRefreshing = true
 
         uidRef.whereArrayContains("users", userRef).get().addOnCompleteListener { task ->
@@ -401,6 +421,17 @@ class ChatListActivity : AppCompatActivity() {
                     chatRoom.userModels?.add(userIdModelMap.getOrElse(ref.id) { return@forEach })
             }
         }
+
+        // 정렬
+        chatRooms.sortBy {
+            if ( it.messages != null && it.messages.size > 0 ) {
+                it.messages.last().createdAt?.time ?: -1
+            } else {
+                it.createdAt?.time ?: -1
+            }
+        }
+
+        chatRooms.reverse()
 
         runOnUiThread {
             updateChatRoomView(chatRooms)

@@ -34,4 +34,9 @@
     <string name="loadingEmoticons">Loading Emoticons</string>
     <string name="emoticon">Emoticon</string>
     <string name="installNewVersion">Please install latest version from Google Play Store. Application will be closed in 5 seconds.</string>
+    <string name="newVersionAvailable">New version available</string>
+    <string name="pleaseUpdate">Please, update app to new version in Google Play Store.</string>
+    <string name="update">Update</string>
+    <string name="noThanks">No, thanks</string>
+    <string name="enterOtherUserEmail">Enter another user\'s email.</string>
 </resources>

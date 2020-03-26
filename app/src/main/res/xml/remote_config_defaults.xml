@@ -2,6 +2,14 @@
 <defaultsMap>
     <entry>
         <key>minimum_version_code</key>
-        <value>3</value>
+        <value>5</value>
+    </entry>
+    <entry>
+        <key>force_update_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>google_playstore_url</key>
+        <value>https://play.google.com/store/apps/details?id=com.iseokchan.dorandoran</value>
     </entry>
 </defaultsMap>

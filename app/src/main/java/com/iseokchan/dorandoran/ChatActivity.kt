@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -14,6 +15,7 @@ import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -28,6 +30,7 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import com.iseokchan.dorandoran.adapters.ChatAdapter
 import com.iseokchan.dorandoran.adapters.EmoticonPackAdapter
+import com.iseokchan.dorandoran.classes.ForceUpdateChecker
 import com.iseokchan.dorandoran.models.*
 import kotlinx.android.synthetic.main.activity_chat.*
 import kotlinx.coroutines.*
@@ -64,6 +67,25 @@ class ChatActivity : AppCompatActivity() {
 
             return
         }
+
+        ForceUpdateChecker.with(this)
+            .onUpdateNeeded(object : ForceUpdateChecker.OnUpdateNeededListener {
+                override fun onUpdateNeeded(updateUrl: String?) {
+                    val dialog: AlertDialog =
+                        AlertDialog.Builder(this@ChatActivity)
+                            .setTitle(getString(R.string.newVersionAvailable))
+                            .setMessage(getString(R.string.pleaseUpdate))
+                            .setPositiveButton(getString(R.string.update)) { _, _ ->
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl))
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+                            }.setNegativeButton(getString(R.string.noThanks)) { _, _ ->
+                                ActivityCompat.finishAffinity(this@ChatActivity)
+                            }.create()
+                    dialog.show()
+                }
+
+            }).check()
 
         this.currentUser = auth.currentUser!!
         this.chatroomId = intent.getStringExtra("chatroom_id") ?: return

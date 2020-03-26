@@ -8,6 +8,8 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -18,6 +20,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.iseokchan.dorandoran.classes.ForceUpdateChecker
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_login.*
 
@@ -34,6 +37,25 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+
+        ForceUpdateChecker.with(this)
+            .onUpdateNeeded(object : ForceUpdateChecker.OnUpdateNeededListener {
+                override fun onUpdateNeeded(updateUrl: String?) {
+                    val dialog: AlertDialog =
+                        AlertDialog.Builder(this@LoginActivity)
+                            .setTitle(getString(R.string.newVersionAvailable))
+                            .setMessage(getString(R.string.pleaseUpdate))
+                            .setPositiveButton(getString(R.string.update)) { _, _ ->
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl))
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+                            }.setNegativeButton(getString(R.string.noThanks)) { _, _ ->
+                                ActivityCompat.finishAffinity(this@LoginActivity)
+                            }.create()
+                    dialog.show()
+                }
+
+            }).check()
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
