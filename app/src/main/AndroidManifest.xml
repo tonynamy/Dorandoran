@@ -9,6 +9,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:noHistory="false"
+        android:name=".DoranDoranApplication"
         android:theme="@style/AppTheme">
 
 

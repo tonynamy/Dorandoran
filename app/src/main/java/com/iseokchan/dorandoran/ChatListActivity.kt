@@ -74,6 +74,7 @@ class ChatListActivity : AppCompatActivity() {
                     intent.putExtra("uid", currentUser.uid)
                     intent.putExtra("chatroom_id", chatRoom.id)
                     startActivity(intent)
+                    finish()
 
                 }
 
