@@ -22,15 +22,7 @@ class SplashActivity : AppCompatActivity() {
         super.onStart()
         val currentUser = firebaseAuth.currentUser
 
-        DoranDoranApplication.isSplash = true
-
-        if(currentUser == null) {
-
-            val intent = Intent(this@SplashActivity, LoginActivity::class.java)
-            startActivity(intent)
-            finish()
-
-        } else {
+        if (currentUser != null) {
 
             val intent = Intent(this@SplashActivity, ChatListActivity::class.java)
             startActivity(intent)

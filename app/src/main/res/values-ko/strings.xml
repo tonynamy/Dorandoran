@@ -39,4 +39,9 @@
     <string name="noThanks">나가기</string>
     <string name="enterOtherUserEmail">상대방의 이메일 주소를 입력하세요.</string>
     <string name="newVersionAvailable">새 버전이 있습니다.</string>
+    <string name="channel_name">새 메시지</string>
+    <string name="channel_description">새 메시지에 대한 알림입니다.</string>
+    <string name="NEW_MESSAGE_CHANNEL_ID">NEW_MESSAGE</string>
+    <string name="notificationSettings">알림 설정</string>
+    <string name="notificationSettingNotSupported">안드로이드 O 버전 미만에서는 알림 커스터마이징이 지원되지 않습니다.</string>
 </resources>

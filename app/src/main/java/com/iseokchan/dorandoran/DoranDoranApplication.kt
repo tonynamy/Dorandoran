@@ -1,15 +1,12 @@
 package com.iseokchan.dorandoran
 
-import android.app.Activity
-import android.app.ActivityManager
-import android.app.Application
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.iid.FirebaseInstanceId
@@ -21,7 +18,7 @@ class DoranDoranApplication : Application() {
 
     companion object {
 
-        var isSplash = false;
+        var isSplash = false
 
         lateinit var firebaseAuth: FirebaseAuth
         lateinit var rootRef: FirebaseFirestore
@@ -74,6 +71,19 @@ class DoranDoranApplication : Application() {
         }
 
         checkMinimumVersionCode()
+        createNewMessageNotificationChannel()
+    }
+
+    private fun createNewMessageNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = getString(R.string.channel_name)
+            val descriptionText = getString(R.string.channel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val mChannel = NotificationChannel(getString(R.string.NEW_MESSAGE_CHANNEL_ID), name, importance)
+            mChannel.description = descriptionText
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(mChannel)
+        }
     }
 
     private fun checkMinimumVersionCode() {
@@ -89,16 +99,14 @@ class DoranDoranApplication : Application() {
 
     fun resetToLoginActivity() {
         (applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).let {
-            if(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    it.appTasks.size > 0
-                } else {
-                    it.getRunningTasks(Int.MAX_VALUE).size > 0
-                } && isSplash
-            ) {
-                val intent = Intent(applicationContext, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-            }
+            val intent = Intent(applicationContext, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
         }
+    }
+
+    override fun onTerminate() {
+        super.onTerminate()
+        firebaseAuth.removeAuthStateListener{}
     }
 }

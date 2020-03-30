@@ -1,8 +1,10 @@
 package com.iseokchan.dorandoran
 
-import android.content.*
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
 import android.view.Menu
 import android.view.MenuItem
@@ -152,6 +154,33 @@ class ChatListActivity : AppCompatActivity() {
                 showNewChatRoomDialog()
                 true
             }
+            R.id.action_notification_settings -> {
+
+                val intent = Intent()
+                when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                        intent.action = Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        intent.putExtra(
+                            Settings.EXTRA_CHANNEL_ID,
+                            getString(R.string.NEW_MESSAGE_CHANNEL_ID)
+                        )
+                    }
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP -> {
+                        intent.action = "android.settings.APP_NOTIFICATION_SETTINGS"
+                        intent.putExtra("app_package", this.packageName)
+                        intent.putExtra("app_uid", this.applicationInfo.uid)
+                    }
+                    else -> {
+                        intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        intent.addCategory(Intent.CATEGORY_DEFAULT)
+                        intent.data = Uri.parse("package:" + this.packageName)
+                    }
+                }
+                startActivity(intent)
+                true
+            }
             R.id.action_sign_out -> {
 
                 DoranDoranApplication.signOut(this)
@@ -221,7 +250,8 @@ class ChatListActivity : AppCompatActivity() {
 
 
         }
-        builder.setNegativeButton(android.R.string.cancel
+        builder.setNegativeButton(
+            android.R.string.cancel
         ) { dialog, _ -> dialog.cancel() }
 
         builder.show()
@@ -229,7 +259,8 @@ class ChatListActivity : AppCompatActivity() {
 
     private fun createNewChatRoom(friend: User?, friendRef: DocumentReference) {
 
-        val myRef = firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) } ?: return
+        val myRef = firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) }
+            ?: return
         val chatRoomRef = rootRef.collection("chatrooms")
 
         chatRoomRef
@@ -270,7 +301,9 @@ class ChatListActivity : AppCompatActivity() {
     private fun getChatRoomsOnce() {
 
         val uidRef = rootRef.collection("chatrooms")
-        val userRef = firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) } ?: return
+        val userRef =
+            firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) }
+                ?: return
 
         swipeLayout.isRefreshing = true
 
@@ -288,7 +321,9 @@ class ChatListActivity : AppCompatActivity() {
     private fun addChatroomSnapshotListener() {
 
         val uidRef = rootRef.collection("chatrooms")
-        val userRef = firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) } ?: return
+        val userRef =
+            firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) }
+                ?: return
 
         if (this.chatRoomListListener == null) {
             this.chatRoomListListener =
@@ -345,17 +380,17 @@ class ChatListActivity : AppCompatActivity() {
 
         // 유저 매핑
 
-        for(chatRoom in chatRooms) {
+        for (chatRoom in chatRooms) {
             chatRoom.userModels = ArrayList()
             chatRoom.users?.forEach { ref ->
-                if(userIdModelMap.containsKey(ref.id))
+                if (userIdModelMap.containsKey(ref.id))
                     chatRoom.userModels?.add(userIdModelMap.getOrElse(ref.id) { return@forEach })
             }
         }
 
         // 정렬
         chatRooms.sortBy {
-            if ( it.messages != null && it.messages.size > 0 ) {
+            if (it.messages != null && it.messages.size > 0) {
                 it.messages.last().createdAt?.time ?: -1
             } else {
                 it.createdAt?.time ?: -1

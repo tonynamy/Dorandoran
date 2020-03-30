@@ -39,4 +39,9 @@
     <string name="update">Update</string>
     <string name="noThanks">No, thanks</string>
     <string name="enterOtherUserEmail">Enter another user\'s email.</string>
+    <string name="channel_name">New Message</string>
+    <string name="channel_description">Notification for new messages</string>
+    <string name="NEW_MESSAGE_CHANNEL_ID">NEW_MESSAGE</string>
+    <string name="notificationSettings">Notification Settings</string>
+    <string name="notificationSettingNotSupported">Sorry, we don\'t support customizing notification under Android O.</string>
 </resources>
