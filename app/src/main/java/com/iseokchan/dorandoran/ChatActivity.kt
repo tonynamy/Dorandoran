@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -16,7 +15,6 @@ import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.CircularProgressDrawable
@@ -55,6 +53,8 @@ class ChatActivity : AppCompatActivity() {
 
     private var chatroomId = ""
 
+    private var isChatListActivity = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
@@ -89,6 +89,8 @@ class ChatActivity : AppCompatActivity() {
 
         this.currentUser = auth.currentUser!!
         this.chatroomId = intent.getStringExtra("chatroom_id") ?: return
+
+        this.isChatListActivity = intent.getBooleanExtra("isChatListActivity", false)
 
         rootRef = FirebaseFirestore.getInstance()
 
@@ -234,11 +236,15 @@ class ChatActivity : AppCompatActivity() {
             return
         }
 
-        if (!ChatListActivity().lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-            val intent = Intent(this, ChatListActivity::class.java)
-            startActivity(intent)
-        }
+        goToChatListView()
         super.onBackPressed()
+    }
+
+    private fun goToChatListView() {
+        if(!isChatListActivity) {
+            startActivity(Intent(this, ChatListActivity::class.java))
+        }
+        finish()
     }
 
     private fun loadEmoticonCallback(task: Task<QuerySnapshot>) = runBlocking {
@@ -355,10 +361,6 @@ class ChatActivity : AppCompatActivity() {
 
             addSnapshotListener()
 
-        } else {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finish()
         }
 
     }
@@ -375,7 +377,7 @@ class ChatActivity : AppCompatActivity() {
             FieldValue.arrayRemove(rootRef.collection("users").document(currentUser.uid))
         )
         Toast.makeText(this, getString(R.string.leavedRoom), Toast.LENGTH_SHORT).show()
-        finish()
+        goToChatListView()
     }
 
     private fun addSnapshotListener() {
@@ -395,14 +397,12 @@ class ChatActivity : AppCompatActivity() {
         GlobalScope.launch {
 
             if (e != null || value == null) {
-                Log.w("MyTag", "Listen failed.", e)
                 return@launch
             }
 
             val chatRoom = value.toObject(ChatRoom::class.java)
 
             if (chatRoom == null) {
-                Log.w("MyTag", "Conversion failed.", e)
                 return@launch
             }
 

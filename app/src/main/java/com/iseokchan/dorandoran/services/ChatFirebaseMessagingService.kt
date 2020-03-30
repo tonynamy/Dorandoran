@@ -29,16 +29,6 @@ class ChatFirebaseMessagingService : FirebaseMessagingService() {
         // Instance ID token to your app server.
         val auth = FirebaseAuth.getInstance()
         val rootRef = FirebaseFirestore.getInstance()
-
-        auth.currentUser?.let{
-
-            val userRef = rootRef.collection("users").document(it.uid)
-
-            userRef.set(hashMapOf(
-                "fcmToken" to token
-            ), SetOptions.merge())
-
-        }
     }
 
 

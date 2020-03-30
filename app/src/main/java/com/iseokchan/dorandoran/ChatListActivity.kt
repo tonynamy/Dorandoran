@@ -1,20 +1,14 @@
 package com.iseokchan.dorandoran
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.*
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.text.InputType
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -22,13 +16,11 @@ import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.*
-import com.google.firebase.iid.FirebaseInstanceId
+import com.iseokchan.dorandoran.DoranDoranApplication.Companion.firebaseAuth
+import com.iseokchan.dorandoran.DoranDoranApplication.Companion.rootRef
 import com.iseokchan.dorandoran.adapters.ChatRoomAdapter
 import com.iseokchan.dorandoran.classes.ForceUpdateChecker
 import com.iseokchan.dorandoran.models.ChatRoom
@@ -39,10 +31,6 @@ import kotlinx.coroutines.tasks.await
 
 
 class ChatListActivity : AppCompatActivity() {
-
-    private lateinit var auth: FirebaseAuth
-    private lateinit var rootRef: FirebaseFirestore
-    private lateinit var currentUser: FirebaseUser
 
     private lateinit var swipeLayout: SwipeRefreshLayout
     private lateinit var recyclerView: RecyclerView
@@ -59,11 +47,8 @@ class ChatListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chatlist)
 
-        auth = FirebaseAuth.getInstance()
-        rootRef = FirebaseFirestore.getInstance()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createNotificationChannel()
+        DoranDoranApplication.checkIfLoggedIn {
+            DoranDoranApplication().resetToLoginActivity()
         }
 
         ForceUpdateChecker.with(this)
@@ -93,8 +78,9 @@ class ChatListActivity : AppCompatActivity() {
                 override fun onChatRoomClicked(view: View, position: Int, chatRoom: ChatRoom) {
 
                     val intent = Intent(this@ChatListActivity, ChatActivity::class.java)
-                    intent.putExtra("uid", currentUser.uid)
+                    intent.putExtra("uid", firebaseAuth.currentUser?.uid)
                     intent.putExtra("chatroom_id", chatRoom.id)
+                    intent.putExtra("isChatListActivity", true)
                     startActivity(intent)
                 }
 
@@ -139,26 +125,20 @@ class ChatListActivity : AppCompatActivity() {
             getChatRoomsOnce()
         }
 
+        onUserChange(firebaseAuth.currentUser)
+
     }
 
     private fun leaveRoom(chatRoom_id: String) {
         rootRef.collection("chatrooms").document(chatRoom_id).update(
             "users",
-            FieldValue.arrayRemove(rootRef.collection("users").document(currentUser.uid))
+            FieldValue.arrayRemove(firebaseAuth.currentUser?.uid?.let {
+                rootRef.collection("users").document(
+                    it
+                )
+            })
         )
         Toast.makeText(this, getString(R.string.leavedRoom), Toast.LENGTH_SHORT).show()
-    }
-
-    // API 26 이상을 위한 Notification Channel 생성
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun createNotificationChannel() {
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        NotificationChannel("__message__", "메시지", NotificationManager.IMPORTANCE_HIGH).apply {
-            description = "새로운 메시지 수신 시"
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            notificationManager.createNotificationChannel(this)
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -173,24 +153,8 @@ class ChatListActivity : AppCompatActivity() {
                 true
             }
             R.id.action_sign_out -> {
-                auth.signOut()
 
-                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                    .requestIdToken(getString(R.string.default_web_client_id))
-                    .requestEmail()
-                    .build()
-
-                val googleSignInClient = GoogleSignIn.getClient(this, gso)
-                googleSignInClient.signOut().addOnCompleteListener(
-                    this
-                ) {
-
-                    val intent = Intent(this, LoginActivity::class.java)
-                    startActivity(intent)
-                    finish()
-
-                }
-
+                DoranDoranApplication.signOut(this)
 
                 true
             }
@@ -265,7 +229,7 @@ class ChatListActivity : AppCompatActivity() {
 
     private fun createNewChatRoom(friend: User?, friendRef: DocumentReference) {
 
-        val myRef = rootRef.collection("users").document(currentUser.uid)
+        val myRef = firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) } ?: return
         val chatRoomRef = rootRef.collection("chatrooms")
 
         chatRoomRef
@@ -282,46 +246,14 @@ class ChatListActivity : AppCompatActivity() {
                     .show()
             }
             .addOnFailureListener { e ->
-                Log.e("MY TAG", e.message)
                 Snackbar.make(chatListLayout, R.string.cannotFindUser, Snackbar.LENGTH_SHORT).show()
             }
 
     }
 
-    public override fun onStart() {
-        super.onStart()
-        // Check if user is signed in (non-null) and update UI accordingly.
-        auth.currentUser?.let {
-            this.currentUser = it
-        }
-
-        FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener { task ->
-            Log.i("token", task.token)
-
-            this.currentUser.let {
-
-                val userRef = rootRef.collection("users").document(it.uid)
-
-                userRef.set(
-                    hashMapOf(
-                        "fcmToken" to task.token
-                    ), SetOptions.merge()
-                )
-
-            }
-
-        }
-
-        onUserChange(currentUser)
-    }
-
     private fun onUserChange(user: FirebaseUser?) {
 
-        if (user == null) {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finish()
-        } else {
+        if (user != null) {
             addChatroomSnapshotListener()
             getChatRoomsOnce()
         }
@@ -330,7 +262,7 @@ class ChatListActivity : AppCompatActivity() {
 
     private fun updateChatRoomView(chatRooms: ArrayList<ChatRoom>) {
 
-        this.viewAdapter.updateList(chatRooms, currentUser.uid)
+        this.viewAdapter.updateList(chatRooms, firebaseAuth.currentUser?.uid)
         swipeLayout.isRefreshing = false
 
     }
@@ -338,7 +270,7 @@ class ChatListActivity : AppCompatActivity() {
     private fun getChatRoomsOnce() {
 
         val uidRef = rootRef.collection("chatrooms")
-        val userRef = rootRef.collection("users").document(currentUser.uid)
+        val userRef = firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) } ?: return
 
         swipeLayout.isRefreshing = true
 
@@ -356,7 +288,7 @@ class ChatListActivity : AppCompatActivity() {
     private fun addChatroomSnapshotListener() {
 
         val uidRef = rootRef.collection("chatrooms")
-        val userRef = rootRef.collection("users").document(currentUser.uid)
+        val userRef = firebaseAuth.currentUser?.uid?.let { rootRef.collection("users").document(it) } ?: return
 
         if (this.chatRoomListListener == null) {
             this.chatRoomListListener =
@@ -370,7 +302,6 @@ class ChatListActivity : AppCompatActivity() {
     private fun onChatroomRetrieved(value: QuerySnapshot?, e: FirebaseFirestoreException?) {
 
         if (e != null) {
-            Log.w("MyTag", "Listen failed.", e)
             return
         }
 

@@ -34,7 +34,8 @@
 
         <service
             android:name=".services.ChatFirebaseMessagingService"
-            android:exported="false">
+            android:exported="false"
+            android:label="메시지">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>

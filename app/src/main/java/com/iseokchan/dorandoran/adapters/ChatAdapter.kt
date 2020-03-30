@@ -226,9 +226,8 @@ class ChatAdapter(
                 val emoticon = currentChat.emoticon!!
                 val currentEmoticonPack =
                     emoticonPacks.find { it.id == emoticon.emoticonPackId }
-                val currentEmoticonImageUrl =
-                    currentEmoticonPack?.emoticons?.find { it.displayName == emoticon.displayName }?.url
-                        ?: ""
+                val currentEmoticon =
+                    currentEmoticonPack?.emoticons?.find { it.displayName == emoticon.displayName }
 
                 val circularProgressDrawable =
                     CircularProgressDrawable(myHolder.itemView.context)
@@ -238,7 +237,7 @@ class ChatAdapter(
 
                 Glide
                     .with(myHolder.itemView.context)
-                    .load(currentEmoticonImageUrl)
+                    .load(currentEmoticon?.url)
                     .placeholder(circularProgressDrawable)
                     .error(circularProgressDrawable)
                     .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
@@ -270,9 +269,8 @@ class ChatAdapter(
                 val emoticon = currentChat.emoticon!!
                 val currentEmoticonPack =
                     emoticonPacks.find { it.id == emoticon.emoticonPackId }
-                val currentEmoticonImageUrl =
-                    currentEmoticonPack?.emoticons?.find { it.displayName == emoticon.displayName }?.url
-                        ?: ""
+                val currentEmoticon =
+                    currentEmoticonPack?.emoticons?.find { it.displayName == emoticon.displayName }
 
                 val circularProgressDrawable =
                     CircularProgressDrawable(notMyHolder.itemView.context)
@@ -282,7 +280,7 @@ class ChatAdapter(
 
                 Glide
                     .with(notMyHolder.itemView.context)
-                    .load(currentEmoticonImageUrl)
+                    .load(currentEmoticon?.url)
                     .placeholder(circularProgressDrawable)
                     .error(circularProgressDrawable)
                     .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)

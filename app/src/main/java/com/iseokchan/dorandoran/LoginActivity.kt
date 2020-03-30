@@ -1,38 +1,26 @@
 package com.iseokchan.dorandoran
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.firestore.FirebaseFirestore
+import com.iseokchan.dorandoran.DoranDoranApplication.Companion.firebaseAuth
+import com.iseokchan.dorandoran.DoranDoranApplication.Companion.rootRef
 import com.iseokchan.dorandoran.classes.ForceUpdateChecker
 import com.iseokchan.dorandoran.models.User
 import kotlinx.android.synthetic.main.activity_login.*
 
 class LoginActivity : AppCompatActivity() {
 
-    private val RC_SIGN_IN = 9001;
-    private val TAG = "Google Login"
-
-    private lateinit var googleSignInClient:GoogleSignInClient
-
-    private lateinit var rootRef: FirebaseFirestore
-    private lateinit var auth: FirebaseAuth
+    private val RC_SIGN_IN = 9001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,15 +45,6 @@ class LoginActivity : AppCompatActivity() {
 
             }).check()
 
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.default_web_client_id))
-                .requestEmail()
-            .build()
-
-        googleSignInClient = GoogleSignIn.getClient(this, gso)
-        auth = FirebaseAuth.getInstance()
-        rootRef = FirebaseFirestore.getInstance()
-
         btn_googleSignIn.setOnClickListener { _ ->
             signIn()
         }
@@ -73,17 +52,17 @@ class LoginActivity : AppCompatActivity() {
 
     public override fun onStart() {
         super.onStart()
-        // Check if user is signed in (non-null) and update UI accordingly.
-        val currentUser = auth.currentUser
-        currentUser?.let {
+        firebaseAuth.currentUser?.let {
             loginOrRegister(it)
         }
 
     }
 
     private fun signIn() {
-        val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, RC_SIGN_IN)
+        GoogleSignIn.getClient(this, DoranDoranApplication.googleSignInOptions)?.let {
+            val signInIntent = it.signInIntent
+            startActivityForResult(signInIntent, RC_SIGN_IN)
+        }
     }
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -93,40 +72,29 @@ class LoginActivity : AppCompatActivity() {
         if (requestCode == RC_SIGN_IN) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             try {
-                // Google Sign In was successful, authenticate with Firebase
                 val account = task.getResult(ApiException::class.java)
                 firebaseAuthWithGoogle(account!!)
             } catch (e: ApiException) {
-                // Google Sign In failed, update UI appropriately
-                Log.w(TAG, "Google sign in failed", e)
-                // ...
             }
         }
     }
 
     private fun firebaseAuthWithGoogle(acct: GoogleSignInAccount) {
-        Log.d(TAG, "firebaseAuthWithGoogle:" + acct.id!!)
 
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
-        auth.signInWithCredential(credential)
+        firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    // Sign in success, update UI with the signed-in user's information
-                    Log.d(TAG, "signInWithCredential:success")
-                    val user = auth.currentUser
+                    val user = firebaseAuth.currentUser
 
                     user?.let {
                         loginOrRegister(it)
                     }
 
                 } else {
-                    // If sign in fails, display a message to the user.
-                    Log.w(TAG, "signInWithCredential:failure", task.exception)
                     Snackbar.make(loginLayout, R.string.loginFailed, Snackbar.LENGTH_SHORT).show()
                     updateUI(null)
                 }
-
-                // ...
             }
     }
 
@@ -193,7 +161,7 @@ class LoginActivity : AppCompatActivity() {
 
             val intent = Intent(this, ChatListActivity::class.java)
             startActivity(intent)
-            finish()
+            ActivityCompat.finishAffinity(this)
 
         } else {
             Snackbar.make(loginLayout, R.string.loginFailed, Snackbar.LENGTH_SHORT).show()

@@ -9,6 +9,7 @@ import androidx.core.app.ActivityCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+import com.iseokchan.dorandoran.DoranDoranApplication.Companion.firebaseAuth
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
@@ -17,17 +18,11 @@ import java.lang.Exception
 
 class SplashActivity : AppCompatActivity() {
 
-    private lateinit var auth: FirebaseAuth
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        auth = FirebaseAuth.getInstance()
-    }
-
     override fun onStart() {
         super.onStart()
-        val currentUser = auth.currentUser
+        val currentUser = firebaseAuth.currentUser
+
+        DoranDoranApplication.isSplash = true
 
         if(currentUser == null) {
 
