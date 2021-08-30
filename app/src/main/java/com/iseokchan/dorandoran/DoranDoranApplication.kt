@@ -9,7 +9,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
-import com.google.firebase.iid.FirebaseInstanceId
+//import com.google.firebase.iid.FirebaseInstanceId
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 
@@ -60,9 +60,9 @@ class DoranDoranApplication : Application() {
             .requestEmail()
             .build()
 
-        FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener { task ->
+        /*FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener { task ->
             addFcmToken(task.token)
-        }
+        }*/
 
         firebaseAuth.addAuthStateListener {
             if(it.currentUser == null) {
